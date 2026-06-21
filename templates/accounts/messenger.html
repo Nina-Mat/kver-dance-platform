@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Мессенджер — KVER{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4"><i class="bi bi-chat-dots"></i> Мессенджер</h2>
+
+    {% if dialog_items %}
+    <div class="list-group">
+        {% for item in dialog_items %}
+        <a href="{% url 'accounts:chat' item.other_user.pk %}" class="list-group-item list-group-item-action bg-card border-secondary text-light d-flex align-items-center gap-3 mb-2 rounded">
+            <div class="flex-grow-1">
+                <div class="fw-semibold">@{{ item.other_user.nickname|default:item.other_user.username }}</div>
+                {% if item.last_message %}
+                <div class="text-muted small text-truncate">
+                    {% if item.last_message.sender == request.user %}Вы: {% endif %}{{ item.last_message.text }}
+                </div>
+                {% else %}
+                <div class="text-muted small">Начните переписку</div>
+                {% endif %}
+            </div>
+            {% if item.unread_count %}
+            <span class="badge rounded-pill" style="background: var(--accent-pink);">{{ item.unread_count }}</span>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-info-text">Диалогов пока нет. Зайдите в профиль и нажмите «Написать».</p>
+    {% endif %}
+</div>
+{% endblock %}

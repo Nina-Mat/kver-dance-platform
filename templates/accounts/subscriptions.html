@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Подписки — KVER{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4"><i class="bi bi-person-plus"></i> Подписки</h2>
+    <p class="text-muted mb-4">Профили, на которые вы подписаны. Их контент чаще появляется в ленте.</p>
+
+    {% if subscriptions %}
+    <div class="row g-3">
+        {% for sub in subscriptions %}
+        <div class="col-md-6 col-lg-4">
+            <div class="bg-card p-3 rounded d-flex align-items-center gap-3">
+                <div class="flex-grow-1">
+                    <a href="{% url 'accounts:profile' sub.target.pk %}" class="text-light text-decoration-none fw-semibold">
+                        @{{ sub.target.nickname|default:sub.target.username }}
+                    </a>
+                    <div class="text-muted small">{{ sub.target.get_user_type_display }}</div>
+                    <div class="text-muted small">{{ sub.target.subscribers_count }} подписчиков</div>
+                </div>
+                <a href="{% url 'accounts:chat' sub.target.pk %}" class="btn btn-outline-neon btn-sm">
+                    <i class="bi bi-envelope"></i>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-info-text">Вы пока ни на кого не подписаны. Заходите в профили и нажимайте «Подписаться».</p>
+    {% endif %}
+</div>
+{% endblock %}

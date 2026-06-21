@@ -1,0 +1,207 @@
+{% extends 'accounts/profile_base.html' %}
+{% load static %}
+
+{% block title %}{{ profile_user.nickname|default:profile_user.username }} — KVER{% endblock %}
+
+{% block profile_avatar %}
+<div class="avatar-rhombus-wrap avatar-shape-filter">
+    <div class="avatar-rhombus-md">
+        {% if profile_user.profile.photo %}
+        <img src="{{ profile_user.profile.photo.url }}" alt="{{ profile_user.nickname|default:profile_user.username }}">
+        {% elif profile_user.photo %}
+        <img src="{{ profile_user.photo.url }}" alt="{{ profile_user.nickname|default:profile_user.username }}">
+        {% else %}
+        <span class="avatar-letter-md">{{ profile_user.nickname|default:profile_user.username|first|upper }}</span>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block profile_header_info %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 w-100">
+    <div>
+        <h1 class="profile-name">{{ profile_user.username }}</h1>
+        {% if profile_user.nickname %}
+        <span class="profile-nickname">@{{ profile_user.nickname }}</span>
+        {% endif %}
+        <div class="profile-subscribers-count text-muted small mt-1">
+            <i class="bi bi-person-plus"></i> {{ subscribers_count }} подписчик{{ subscribers_count|pluralize:",а,ов" }}
+        </div>
+    </div>
+    {% include 'accounts/includes/profile_actions.html' %}
+</div>
+
+<div class="profile-meta-row">
+    {% if profile_user.city %}
+    <span><i class="bi bi-geo-alt"></i> {{ profile_user.city }}</span>
+    {% endif %}
+    {% if profile_user.profile.experience_start_date %}
+    <span><i class="bi bi-clock-history"></i> Стаж: {{ profile_user.profile.dance_experience }}</span>
+    {% endif %}
+</div>
+
+{% if user_teams %}
+<div class="profile-meta-row">
+    <span class="profile-info-label mb-0"><i class="bi bi-people"></i> Команды:</span>
+    <div class="teams-list">
+        {% for team in user_teams %}
+        <a href="{% url 'accounts:team_profile' team.pk %}" class="team-chip">
+            <i class="bi bi-hexagon"></i> {{ team.name }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block profile_tabs %}
+<ul class="nav nav-pills nav-fill" id="soloProfileTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="about-tab" data-bs-toggle="tab" data-bs-target="#about" type="button">
+            <i class="bi bi-person"></i> Обо мне
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="photocards-tab" data-bs-toggle="tab" data-bs-target="#photocards" type="button">
+            <i class="bi bi-images"></i> Фотокарточки
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="covers-tab" data-bs-toggle="tab" data-bs-target="#covers" type="button">
+            <i class="bi bi-camera-video"></i> Каверы
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="performances-tab" data-bs-toggle="tab" data-bs-target="#performances" type="button">
+            <i class="bi bi-trophy"></i> Выступления
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button">
+            <i class="bi bi-gear"></i> Настройки
+        </button>
+    </li>
+</ul>
+{% endblock %}
+
+{% block profile_content %}
+<div class="tab-content">
+    <!-- Обо мне -->
+    <div class="tab-pane fade show active" id="about">
+        <div class="profile-about-block mb-4">
+            <span class="profile-info-label">О себе</span>
+            {% if profile_user.profile.bio %}
+            <p class="profile-bio-text">{{ profile_user.profile.bio }}</p>
+            {% else %}
+            <p class="profile-bio-text profile-bio-empty">Информация о себе пока не заполнена.</p>
+            {% endif %}
+        </div>
+
+        <hr class="profile-section-divider">
+
+        <h6 class="profile-section-title">Танцевальная информация</h6>
+        <div class="row profile-section">
+            <div class="col-sm-6 col-12">
+                <div class="profile-info-field">
+                    <span class="profile-info-label">Уровень</span>
+                    <span class="profile-info-value">{{ profile_user.profile.get_dance_level_display|default:"Не указан" }}</span>
+                </div>
+            </div>
+            <div class="col-sm-6 col-12">
+                <div class="profile-info-field">
+                    <span class="profile-info-label">Позиция</span>
+                    <span class="profile-info-value">{{ profile_user.profile.dance_positions|default:"Не указана" }}</span>
+                </div>
+            </div>
+            <div class="col-sm-6 col-12">
+                <div class="profile-info-field">
+                    <span class="profile-info-label">Стили</span>
+                    <span class="profile-info-value">{{ profile_user.profile.dance_styles|default:"Не указаны" }}</span>
+                </div>
+            </div>
+            <div class="col-sm-6 col-12">
+                <div class="profile-info-field">
+                    <span class="profile-info-label">Любимые группы</span>
+                    <span class="profile-info-value">{{ profile_user.profile.favorite_groups|default:"Не указаны" }}</span>
+                </div>
+            </div>
+            <div class="col-sm-6 col-12">
+                <div class="profile-info-field">
+                    <span class="profile-info-label">Танцевальный стаж</span>
+                    <span class="profile-info-value">
+                        {% if profile_user.profile.experience_start_date %}
+                        {{ profile_user.profile.dance_experience }}
+                        {% else %}
+                        Не указан
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            {% if profile_user.profile.mbti %}
+            <div class="col-sm-6 col-12">
+                <div class="profile-info-field">
+                    <span class="profile-info-label">MBTI</span>
+                    <span class="profile-info-value">{{ profile_user.profile.mbti }}</span>
+                </div>
+            </div>
+            {% endif %}
+            {% if profile_user.profile.height %}
+            <div class="col-sm-6 col-12">
+                <div class="profile-info-field">
+                    <span class="profile-info-label">Рост</span>
+                    <span class="profile-info-value">{{ profile_user.profile.height }} см</span>
+                </div>
+            </div>
+            {% endif %}
+            <div class="col-sm-6 col-12">
+                <div class="profile-info-field">
+                    <span class="profile-info-label">Коллаборации</span>
+                    <span class="profile-info-value">
+                        {% if profile_user.profile.is_available_for_collab %}
+                        <span class="text-success"><i class="bi bi-check-circle"></i> Открыт</span>
+                        {% else %}
+                        <span class="text-muted"><i class="bi bi-x-circle"></i> Недоступен</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        {% if profile_user.profile.social_links %}
+        <hr class="profile-section-divider">
+        <h6 class="profile-section-title">Социальные сети</h6>
+        <div class="d-flex flex-wrap gap-2">
+            {% for network, link in profile_user.profile.social_links.items %}
+            <a href="{{ link }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-neon btn-sm">
+                <i class="bi bi-link-45deg"></i> {{ network|capfirst }}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Фотокарточки -->
+    <div class="tab-pane fade" id="photocards">
+        {% include 'accounts/includes/photo_card_grid.html' with empty_message="Фотокарточек пока нет. Добавьте фото с подписью и ссылкой на мероприятие или кавер." %}
+    </div>
+
+    <!-- Каверы (упоминания) -->
+    <div class="tab-pane fade" id="covers">
+        {% include 'accounts/includes/video_grid.html' with videos=user_covers empty_message="Публикаций с вашими упоминаниями (@username) пока нет" %}
+    </div>
+
+    <!-- Выступления -->
+    <div class="tab-pane fade" id="performances">
+        {% include 'accounts/includes/video_grid.html' with videos=user_performances empty_message="Пока нет выступлений" %}
+    </div>
+
+    <!-- Настройки -->
+    <div class="tab-pane fade" id="settings">
+        {% include 'accounts/includes/profile_settings_tab.html' %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/profile_form.js' %}"></script>
+{% endblock %}

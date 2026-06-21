@@ -1,0 +1,61 @@
+<div class="account-switcher-panel">
+    <div class="account-switcher-title">Аккаунты</div>
+
+    {% for account in linked_accounts %}
+    <div class="account-switcher-row {% if account.pk == user.pk %}account-switcher-row--active{% endif %}">
+        {% if account.pk == user.pk %}
+        <div class="account-switcher-main">
+            <span class="account-switcher-avatar account-switcher-avatar--{{ account.navbar_avatar_shape }}">
+                {% if account.navbar_photo_url %}
+                <img src="{{ account.navbar_photo_url }}" alt="">
+                {% else %}
+                <span>{{ account.nickname|default:account.username|first|upper }}</span>
+                {% endif %}
+            </span>
+            <span class="account-switcher-info">
+                <span class="account-switcher-name">@{{ account.nickname|default:account.username }}</span>
+                <span class="account-switcher-type">{{ account.get_user_type_display }}</span>
+            </span>
+            <i class="bi bi-check-circle-fill account-switcher-active-icon"></i>
+        </div>
+        {% else %}
+        <a href="{% url 'accounts:switch_account' account.pk %}" class="account-switcher-main text-decoration-none">
+            <span class="account-switcher-avatar account-switcher-avatar--{{ account.navbar_avatar_shape }}">
+                {% if account.navbar_photo_url %}
+                <img src="{{ account.navbar_photo_url }}" alt="">
+                {% else %}
+                <span>{{ account.nickname|default:account.username|first|upper }}</span>
+                {% endif %}
+            </span>
+            <span class="account-switcher-info">
+                <span class="account-switcher-name">@{{ account.nickname|default:account.username }}</span>
+                <span class="account-switcher-type">{{ account.get_user_type_display }}</span>
+            </span>
+        </a>
+        {% endif %}
+
+        <form method="post" action="{% url 'accounts:remove_account' account.pk %}" class="account-switcher-logout-form">
+            {% csrf_token %}
+            <button type="submit" class="account-switcher-logout-btn" title="Выйти из @{{ account.nickname|default:account.username }}">
+                <i class="bi bi-box-arrow-right"></i>
+            </button>
+        </form>
+    </div>
+    {% endfor %}
+
+    <a href="{% url 'accounts:login' %}?add=1" class="account-switcher-add">
+        <i class="bi bi-plus-circle"></i> Добавить аккаунт
+    </a>
+
+    <hr class="dropdown-divider">
+
+    <a class="dropdown-item" href="{% url 'accounts:profile' user.pk %}">
+        <i class="bi bi-person"></i> Мой профиль
+    </a>
+
+    <hr class="dropdown-divider">
+
+    <a class="dropdown-item text-danger" href="{% url 'accounts:logout' %}">
+        <i class="bi bi-box-arrow-left"></i> Выйти из всех аккаунтов
+    </a>
+</div>

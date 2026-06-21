@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Выступления — KVER{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-trophy"></i> Выступления</h2>
+            <p class="text-muted mb-0">Рекомендации загруженных видео выступлений</p>
+        </div>
+        <a href="{% url 'media_app:upload' %}" class="btn btn-neon btn-sm"><i class="bi bi-plus-lg"></i> Загрузить видео</a>
+    </div>
+
+    {% if performances %}
+        {% for perf in performances %}
+        <div class="card bg-card border-0 mb-4">
+            <div class="card-body">
+                {% include 'media_app/includes/cover_card.html' with cover=perf %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <p class="empty-info-text">Выступлений пока нет.</p>
+    {% endif %}
+</div>
+{% endblock %}

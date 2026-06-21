@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ event.title }} — KVER{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="bg-card p-4">
+                <div class="d-flex flex-wrap gap-3 align-items-start mb-4">
+                    {% if event.logo %}
+                    <img src="{{ event.logo.url }}" alt="{{ event.title }}"
+                         class="calendar-event-logo" style="opacity: 1; width: 80px; height: 80px;">
+                    {% else %}
+                    <span class="calendar-event-logo calendar-event-logo--placeholder"
+                          style="opacity: 1; width: 80px; height: 80px; font-size: 1.5rem;">
+                        {{ event.title|first|upper }}
+                    </span>
+                    {% endif %}
+                    <div class="flex-grow-1">
+                        <span class="stat-badge mb-2 d-inline-block">{{ event.get_event_type_display }}</span>
+                        <h1 class="h3 mb-2">{{ event.title }}</h1>
+                        <p class="text-muted mb-0">
+                            <i class="bi bi-person"></i>
+                            <a href="{% url 'accounts:profile' event.organizer.pk %}">{{ event.organizer.username }}</a>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="row profile-section mb-4">
+                    <div class="col-sm-6 mb-3">
+                        <span class="profile-info-label">Дата проведения</span>
+                        <span class="profile-info-value">
+                            <i class="bi bi-calendar-event"></i> {{ event.event_date|date:"d.m.Y H:i" }}
+                        </span>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <span class="profile-info-label">Дедлайн регистрации</span>
+                        <span class="profile-info-value">
+                            <i class="bi bi-clock"></i> {{ event.registration_deadline|date:"d.m.Y H:i" }}
+                        </span>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <span class="profile-info-label">Место</span>
+                        <span class="profile-info-value">
+                            <i class="bi bi-geo-alt"></i> {{ event.location }}
+                        </span>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <span class="profile-info-label">Город организатора</span>
+                        <span class="profile-info-value">{{ event.organizer.city|default:"Не указан" }}</span>
+                    </div>
+                </div>
+
+                {% if event.description %}
+                <h5 class="profile-section-title">Описание</h5>
+                <p class="text-secondary" style="line-height: 1.7;">{{ event.description|linebreaks }}</p>
+                {% endif %}
+
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <a href="{% url 'events:calendar' %}?month={{ event.event_date|date:'Y-m' }}" class="btn btn-outline-neon">
+                        <i class="bi bi-calendar3"></i> В календарь
+                    </a>
+
+                    {% if can_apply %}
+                    <a href="{% url 'events:apply' event.pk %}" class="btn btn-neon">
+                        <i class="bi bi-file-earmark-plus"></i> Подать заявку
+                    </a>
+                    {% elif user_application %}
+                    <span class="btn btn-outline-neon disabled">
+                        <i class="bi bi-check2-circle"></i>
+                        Заявка отправлена · {{ user_application.get_status_display }}
+                    </span>
+                    {% elif not registration_open and not is_organizer %}
+                    <span class="btn btn-outline-neon disabled">
+                        <i class="bi bi-lock"></i> Регистрация закрыта
+                    </span>
+                    {% endif %}
+
+                    {% if is_organizer %}
+                    <a href="{% url 'events:applications' event.pk %}" class="btn btn-neon">
+                        <i class="bi bi-file-earmark-text"></i> Заявки
+                        {% if applications_count %}({{ applications_count }}){% endif %}
+                    </a>
+                    <a href="{% url 'accounts:profile' event.organizer.pk %}" class="btn btn-outline-neon">
+                        <i class="bi bi-person"></i> Мой профиль
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

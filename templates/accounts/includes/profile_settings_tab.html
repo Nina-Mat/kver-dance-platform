@@ -1,0 +1,31 @@
+{% comment %}
+Общий контент вкладки «Настройки» профиля.
+{% endcomment %}
+{% include 'accounts/includes/monetization_settings.html' %}
+
+<h6 class="profile-section-title">Управление профилем</h6>
+<div class="settings-list">
+    {% if profile_user %}
+    <a href="{% url 'accounts:profile_edit' profile_user.pk %}" class="settings-item">
+        <i class="bi bi-person"></i>
+        <span>Редактировать профиль</span>
+        <i class="bi bi-chevron-right"></i>
+    </a>
+    {% elif team %}
+    <a href="{% url 'accounts:team_edit' team.pk %}" class="settings-item">
+        <i class="bi bi-pencil"></i>
+        <span>Редактировать команду</span>
+        <i class="bi bi-chevron-right"></i>
+    </a>
+    {% endif %}
+    <span class="settings-item settings-item--disabled" title="Скоро">
+        <i class="bi bi-shield-lock"></i>
+        <span>Безопасность и пароль</span>
+        <i class="bi bi-lock"></i>
+    </span>
+    <span class="settings-item settings-item--disabled" title="Скоро">
+        <i class="bi bi-bell"></i>
+        <span>Уведомления</span>
+        <i class="bi bi-lock"></i>
+    </span>
+</div>

@@ -1,0 +1,248 @@
+{% extends 'accounts/profile_base.html' %}
+
+{% block title %}{{ profile_user.username }} — Организатор — KVER{% endblock %}
+
+{% block profile_avatar %}
+<div class="avatar-square-md avatar-shape-filter">
+    {% if profile_user.photo %}
+    <img src="{{ profile_user.photo.url }}" alt="{{ profile_user.username }}">
+    {% else %}
+    <span class="avatar-letter-md">{{ profile_user.username|first|upper }}</span>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block profile_header_info %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 w-100">
+    <div>
+        <h1 class="profile-name">{{ profile_user.username }}</h1>
+        <span class="role-badge"><i class="bi bi-calendar-event"></i> Организатор</span>
+        {% if profile_user.organizer_profile.is_verified %}
+        <span class="role-badge stat-badge--success ms-1"><i class="bi bi-patch-check"></i> Верифицирован</span>
+        {% endif %}
+        {% if profile_user.nickname %}
+        <span class="profile-nickname">@{{ profile_user.nickname }}</span>
+        {% endif %}
+        <div class="profile-subscribers-count text-muted small mt-1">
+            <i class="bi bi-person-plus"></i> {{ subscribers_count }} подписчик{{ subscribers_count|pluralize:",а,ов" }}
+        </div>
+    </div>
+    {% include 'accounts/includes/profile_actions.html' %}
+    {% if is_owner %}
+    <a href="{% url 'events:create' %}" class="btn btn-neon btn-sm ms-2">
+        <i class="bi bi-plus-lg"></i> Создать мероприятие
+    </a>
+    {% endif %}
+</div>
+
+<div class="profile-meta-row">
+    {% if profile_user.organizer_profile.organization_name %}
+    <span><i class="bi bi-building"></i> {{ profile_user.organizer_profile.organization_name }}</span>
+    {% endif %}
+    {% if profile_user.city %}
+    <span><i class="bi bi-geo-alt"></i> {{ profile_user.city }}</span>
+    {% endif %}
+</div>
+
+<div class="profile-stats-row">
+    <span class="stat-badge"><i class="bi bi-calendar-event"></i> {{ events_count }} мероприятий</span>
+    <span class="stat-badge"><i class="bi bi-people"></i> {{ participants_count }} участников</span>
+    <span class="stat-badge"><i class="bi bi-star"></i> {{ rating|default:"—" }} рейтинг</span>
+</div>
+{% endblock %}
+
+{% block profile_tabs %}
+<ul class="nav nav-pills nav-fill" id="organizerProfileTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="about-tab" data-bs-toggle="tab" data-bs-target="#about" type="button">
+            <i class="bi bi-info-circle"></i> О себе
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="events-tab" data-bs-toggle="tab" data-bs-target="#events" type="button">
+            <i class="bi bi-calendar-event"></i> Мои мероприятия
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="applications-tab" data-bs-toggle="tab" data-bs-target="#applications" type="button">
+            <i class="bi bi-file-earmark-text"></i> Заявки
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button">
+            <i class="bi bi-gear"></i> Настройки
+        </button>
+    </li>
+</ul>
+{% endblock %}
+
+{% block profile_content %}
+<div class="tab-content">
+    <!-- О себе -->
+    <div class="tab-pane fade show active" id="about">
+        {% if profile_user.bio %}
+        <p class="text-secondary mb-4" style="line-height: 1.7;">{{ profile_user.bio }}</p>
+        {% else %}
+        <p class="empty-info-text">Информация о себе пока не заполнена.</p>
+        {% endif %}
+
+        <hr class="border-secondary my-3" style="border-color: rgba(255,255,255,0.08) !important;">
+
+        <h6 class="profile-section-title">Информация об организаторе</h6>
+        <div class="row profile-section">
+            <div class="col-sm-6 col-12 mb-3">
+                <span class="profile-info-label">Организация</span>
+                <span class="profile-info-value">{{ profile_user.organizer_profile.organization_name|default:"Не указана" }}</span>
+            </div>
+            <div class="col-sm-6 col-12 mb-3">
+                <span class="profile-info-label">Сайт</span>
+                <span class="profile-info-value">
+                    {% if profile_user.organizer_profile.website %}
+                    <a href="{{ profile_user.organizer_profile.website }}" target="_blank" rel="noopener">{{ profile_user.organizer_profile.website }}</a>
+                    {% else %}
+                    Не указан
+                    {% endif %}
+                </span>
+            </div>
+            <div class="col-sm-6 col-12 mb-3">
+                <span class="profile-info-label">Опыт работы</span>
+                <span class="profile-info-value">{{ profile_user.organizer_profile.experience_description|default:"Не указан" }}</span>
+            </div>
+            <div class="col-sm-6 col-12 mb-3">
+                <span class="profile-info-label">Верификация</span>
+                <span class="profile-info-value">
+                    {% if profile_user.organizer_profile.is_verified %}
+                    <span class="recruitment-open"><i class="bi bi-check-circle"></i> Подтверждён</span>
+                    {% else %}
+                    Не подтверждён
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Мои мероприятия -->
+    <div class="tab-pane fade" id="events">
+        {% if is_owner %}
+        <div class="mb-3">
+            <a href="{% url 'events:create' %}" class="btn btn-neon btn-sm">
+                <i class="bi bi-plus-lg"></i> Создать мероприятие
+            </a>
+        </div>
+        {% endif %}
+        {% if organizer_events %}
+        {% for event in organizer_events %}
+        <a href="{% url 'events:detail' event.pk %}" class="event-list-item text-decoration-none d-flex">
+            <div>
+                <p class="event-list-title mb-1">{{ event.title }}</p>
+                <span class="event-list-meta">
+                    <i class="bi bi-calendar"></i> {{ event.event_date|date:"d.m.Y H:i" }}
+                    &nbsp;·&nbsp;
+                    <i class="bi bi-geo-alt"></i> {{ event.location }}
+                    &nbsp;·&nbsp;
+                    {{ event.get_event_type_display }}
+                </span>
+            </div>
+            <span class="stat-badge{% if not event.is_published %} stat-badge--danger{% else %} stat-badge--success{% endif %}">
+                {% if event.is_published %}В календаре{% else %}Черновик{% endif %}
+            </span>
+        </a>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-calendar-event"></i>
+            <p>У вас пока нет созданных мероприятий</p>
+            {% if is_owner %}
+            <a href="{% url 'events:create' %}" class="btn btn-outline-neon btn-sm mt-2">
+                <i class="bi bi-plus-lg"></i> Создать мероприятие
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Заявки -->
+    <div class="tab-pane fade" id="applications">
+        {% if is_owner %}
+        <form method="get" class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+            <select name="status" class="form-select form-select-sm"
+                    style="max-width: 200px; background: var(--bg-input); color: var(--text-main); border-color: rgba(255,255,255,0.1);"
+                    onchange="this.form.submit()">
+                <option value="">Все статусы</option>
+                {% for value, label in application_status_choices %}
+                <option value="{{ value }}" {% if application_status_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        {% endif %}
+
+        {% if organizer_applications %}
+        {% for application in organizer_applications %}
+        <div class="event-list-item mb-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                <div>
+                    <p class="event-list-title mb-1">
+                        <a href="{% url 'accounts:profile' application.applicant.pk %}" class="text-decoration-none">
+                            {{ application.applicant.username }}
+                        </a>
+                    </p>
+                    <span class="event-list-meta">
+                        <i class="bi bi-calendar-event"></i>
+                        <a href="{% url 'events:detail' application.event.pk %}" class="text-decoration-none">
+                            {{ application.event.title }}
+                        </a>
+                        &nbsp;·&nbsp;
+                        <i class="bi bi-clock"></i> {{ application.created_at|date:"d.m.Y H:i" }}
+                    </span>
+                </div>
+                <span class="{{ application.get_status_badge_class }}">{{ application.get_status_display }}</span>
+            </div>
+
+            {% if application.audio_file %}
+            <div class="mb-3">
+                <audio controls preload="none" style="width: 100%; max-width: 420px;">
+                    <source src="{{ application.audio_file.url }}" type="audio/mpeg">
+                </audio>
+            </div>
+            {% endif %}
+
+            {% if is_owner %}
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'events:applications' application.event.pk %}" class="btn btn-outline-neon btn-sm">
+                    <i class="bi bi-box-arrow-up-right"></i> Подробнее
+                </a>
+                {% if application.status != 'approved' %}
+                <form method="post" action="{% url 'events:application_status' application.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="approved">
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn btn-neon btn-sm">Принять</button>
+                </form>
+                {% endif %}
+                {% if application.status != 'rejected' %}
+                <form method="post" action="{% url 'events:application_status' application.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="rejected">
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn btn-outline-neon btn-sm">Отклонить</button>
+                </form>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-file-earmark-text"></i>
+            <p>Заявок пока нет</p>
+            <small class="text-muted">Заявки появятся после подачи участниками на ваши мероприятия</small>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Настройки -->
+    <div class="tab-pane fade" id="settings">
+        {% include 'accounts/includes/profile_settings_tab.html' %}
+    </div>
+</div>
+{% endblock %}

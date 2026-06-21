@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}Создание мероприятия — KVER{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="bg-card p-4">
+                <h2 class="mb-1"><i class="bi bi-calendar-plus"></i> Создание мероприятия</h2>
+                <p class="text-muted mb-4">Мероприятие появится в календаре в дату проведения</p>
+
+                {% include 'events/includes/platform_commission_stub.html' %}
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <h5 class="profile-section-title mb-3">Основная информация</h5>
+                    {% include 'accounts/includes/form_field.html' with field=form.title %}
+                    {% include 'accounts/includes/form_field.html' with field=form.event_type %}
+                    {% include 'accounts/includes/form_field.html' with field=form.description %}
+
+                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                    <h5 class="profile-section-title mb-3">Дата и место</h5>
+                    {% include 'accounts/includes/form_field.html' with field=form.event_date %}
+                    {% include 'accounts/includes/form_field.html' with field=form.registration_deadline %}
+                    {% include 'accounts/includes/form_field.html' with field=form.location %}
+
+                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                    <h5 class="profile-section-title mb-3">Медиа и публикация</h5>
+                    {% include 'accounts/includes/form_field.html' with field=form.logo %}
+                    {% include 'accounts/includes/form_field.html' with field=form.is_published %}
+
+                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                    <h5 class="profile-section-title mb-3">Конструктор заявки</h5>
+                    <p class="text-muted small mb-3">
+                        Настройте поля, которые участники заполнят при подаче заявки.
+                        Оставьте строки пустыми, если поле не нужно.
+                    </p>
+                    {% include 'accounts/includes/form_field.html' with field=form.require_audio %}
+
+                    {{ field_formset.management_form }}
+                    {% if field_formset.non_form_errors %}
+                    <div class="alert alert-danger">{{ field_formset.non_form_errors }}</div>
+                    {% endif %}
+
+                    <div class="table-responsive mb-3">
+                        <table class="table table-dark table-borderless align-middle mb-0" style="--bs-table-bg: transparent;">
+                            <thead>
+                                <tr class="text-muted small">
+                                    <th>Название поля</th>
+                                    <th style="width: 180px;">Тип</th>
+                                    <th style="width: 110px;">Обязательное</th>
+                                    <th style="width: 60px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for field_form in field_formset %}
+                                <tr>
+                                    <td>
+                                        {% for hidden in field_form.hidden_fields %}{{ hidden }}{% endfor %}
+                                        {{ field_form.label }}
+                                        {% if field_form.label.errors %}<div class="text-danger small">{{ field_form.label.errors }}</div>{% endif %}
+                                    </td>
+                                    <td>{{ field_form.field_type }}</td>
+                                    <td>
+                                        <div class="form-check">
+                                            {{ field_form.required }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if field_formset.can_delete %}
+                                        <div class="form-check">
+                                            {{ field_form.DELETE }}
+                                            <label class="form-check-label small text-muted" for="{{ field_form.DELETE.id_for_label }}">Удалить</label>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-neon">Создать мероприятие</button>
+                        <a href="{% url 'events:calendar' %}" class="btn btn-outline-neon">Отмена</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,146 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KVER — Кавер-дэнс платформа</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --bg-main: #0F172A;
+            --bg-card: #1E293B;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --accent-purple: #8B5CF6;
+            --accent-pink: #EC4899;
+        }
+
+        body {
+            background: var(--bg-main);
+            color: var(--text-main);
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .landing-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 40px;
+            text-align: center;
+        }
+
+        .landing-logo {
+            font-size: 4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        .landing-subtitle {
+            font-size: 1.3rem;
+            color: var(--text-muted);
+            margin-bottom: 60px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            padding: 35px 30px;
+            border-radius: 16px;
+            text-align: left;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .feature-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .feature-desc {
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .btn-join {
+            display: inline-block;
+            padding: 16px 48px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-join:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 28px rgba(139, 92, 246, 0.6);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            .landing-logo {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="landing-container">
+        <h1 class="landing-logo">KVER</h1>
+        <p class="landing-subtitle">Место, где живёт кавер-дэнс. Объединяем танцоров, команды и события.</p>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🔥</div>
+                <h3 class="feature-title">Ивенты</h3>
+                <p class="feature-desc">Находи баттлы и фестивали в своём городе. Регистрируйся в один клик.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🎬</div>
+                <h3 class="feature-title">Каверы</h3>
+                <p class="feature-desc">Загружай свои работы. Получай честную оценку от сообщества.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">💬</div>
+                <h3 class="feature-title">Анонимность</h3>
+                <p class="feature-desc">Общайся без страха. Модерируемые комментарии и защита от токсичности.</p>
+            </div>
+        </div>
+
+        <a href="/accounts/login/" class="btn-join">Присоединиться</a>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

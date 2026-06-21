@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid profile-container">
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-9 col-12">
+
+            <!-- Шапка профиля -->
+            <div class="profile-card">
+                <div class="profile-cover" style="background: {{ cover_style|default:'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)' }};">
+                    {% if is_owner %}
+                    {% if profile_user %}
+                    <a href="{% url 'accounts:profile_edit' profile_user.pk %}#cover-gradient" class="profile-cover-edit" title="Изменить обложку">
+                        <i class="bi bi-palette"></i> Градиент обложки
+                    </a>
+                    {% elif team %}
+                    <a href="{% url 'accounts:team_edit' team.pk %}#cover-gradient" class="profile-cover-edit" title="Изменить обложку">
+                        <i class="bi bi-palette"></i> Градиент обложки
+                    </a>
+                    {% endif %}
+                    {% endif %}
+                </div>
+
+                <div class="profile-header-body">
+                    <div class="profile-avatar-wrap">
+                        {% block profile_avatar %}{% endblock %}
+                        {% if is_owner %}
+                        {% if profile_user %}
+                        <a href="{% url 'accounts:profile_edit' profile_user.pk %}" class="avatar-upload-btn" title="Загрузить фото">
+                            <i class="bi bi-plus"></i>
+                        </a>
+                        {% elif team %}
+                        <a href="{% url 'accounts:team_edit' team.pk %}" class="avatar-upload-btn" title="Загрузить логотип">
+                            <i class="bi bi-plus"></i>
+                        </a>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+
+                    <div class="profile-header-info">
+                        {% block profile_header_info %}{% endblock %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладки -->
+            <div class="profile-tabs-card">
+                {% block profile_tabs %}{% endblock %}
+            </div>
+
+            <!-- Контент вкладок -->
+            <div class="profile-content-card">
+                {% block profile_content %}{% endblock %}
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

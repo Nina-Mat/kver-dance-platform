@@ -1,0 +1,5 @@
+{% if event.logo %}
+<img src="{{ event.logo.url }}" alt="{{ event.title }}" class="calendar-event-logo">
+{% else %}
+<span class="calendar-event-logo calendar-event-logo--placeholder">{{ event.title|first|upper }}</span>
+{% endif %}

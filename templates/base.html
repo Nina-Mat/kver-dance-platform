@@ -1,0 +1,390 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}KVER — Кавер-дэнс платформа{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        :root {
+            --header-height: 56px;
+            --sidebar-width: 240px;
+            --bg-main: #0F172A;
+            --bg-card: #1E293B;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --accent-purple: #8B5CF6;
+            --accent-pink: #EC4899;
+            --accent-blue: #38BDF8;
+        }
+
+        body {
+            padding-top: var(--header-height);
+            min-height: 100vh;
+            background: var(--bg-main);
+            margin: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        /* ===== ВЕРХНЯЯ ПАНЕЛЬ (HEADER) ===== */
+        .top-header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: var(--header-height);
+            background: var(--bg-card);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            z-index: 1030;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            gap: 24px;
+        }
+
+        /* Логотип (слева) */
+        .logo-block {
+            display: flex; align-items: center; text-decoration: none; flex-shrink: 0;
+        }
+        .logo-icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--accent-purple), #A855F7);
+            border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            margin-right: 12px;
+        }
+        .logo-text {
+            font-size: 1.4rem; font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+
+        /* Поиск + Колокольчик */
+        .search-block {
+            display: flex; align-items: center; gap: 12px; flex-grow: 1; max-width: 500px;
+        }
+        .search-bar { flex-grow: 1; }
+        .search-bar input {
+            width: 100%; background: var(--bg-main); border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-main); padding: 6px 12px; border-radius: 6px; font-size: 0.9rem;
+        }
+        .search-bar input::placeholder { color: #64748B; }
+        .search-bar input:focus {
+            outline: none; border-color: var(--accent-purple);
+            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+        }
+        .global-search-wrap { position: relative; flex-grow: 1; }
+        .search-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0; right: 0;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+            max-height: 420px;
+            overflow-y: auto;
+            z-index: 2000;
+        }
+        .search-dropdown.show { display: block; }
+        .search-suggest-group-title {
+            padding: 8px 12px 4px;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--accent-purple);
+            font-weight: 600;
+        }
+        .search-suggest-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 12px; color: var(--text-main); text-decoration: none;
+            transition: background 0.15s;
+        }
+        .search-suggest-item:hover { background: rgba(139,92,246,0.12); color: var(--text-main); }
+        .search-suggest-thumb {
+            width: 40px; height: 40px; object-fit: cover; border-radius: 6px; flex-shrink: 0;
+        }
+        .search-suggest-thumb-empty {
+            display: inline-flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.06); color: var(--text-muted);
+        }
+        .search-suggest-text { display: flex; flex-direction: column; min-width: 0; }
+        .search-suggest-title { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .search-suggest-subtitle { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .search-suggest-all {
+            display: block; padding: 10px 12px; text-align: center;
+            color: var(--accent-purple); text-decoration: none; font-size: 0.88rem;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+        .search-suggest-all:hover { background: rgba(139,92,246,0.08); color: var(--accent-pink); }
+        .search-suggest-empty { padding: 16px 12px; font-size: 0.88rem; }
+        .bell-icon {
+            color: var(--text-muted); font-size: 1.3rem; transition: all 0.2s;
+            padding: 6px; border-radius: 6px; position: relative;
+        }
+        .bell-icon:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+        .bell-wrap { position: relative; }
+        .bell-wrap .dropdown-toggle::after { display: none !important; }
+        .bell-badge {
+            position: absolute; top: 2px; right: 2px;
+            min-width: 16px; height: 16px; padding: 0 4px;
+            border-radius: 8px; background: var(--accent-pink); color: #fff;
+            font-size: 0.65rem; font-weight: 700; line-height: 16px; text-align: center;
+        }
+        .notifications-dropdown {
+            min-width: 320px; max-width: 360px; max-height: 400px; overflow-y: auto;
+            padding: 0;
+        }
+        .notification-item {
+            display: block; padding: 12px 14px; color: var(--text-main);
+            text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.06);
+            transition: background 0.15s;
+        }
+        .notification-item:hover { background: rgba(139,92,246,0.12); color: var(--text-main); }
+        .notification-item--unread { background: rgba(236,72,153,0.08); }
+        .notification-item-title { font-size: 0.88rem; font-weight: 600; margin-bottom: 2px; }
+        .notification-item-text { font-size: 0.8rem; color: var(--text-muted); margin: 0; }
+        .notification-item-time { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
+        .notifications-empty { padding: 20px 14px; text-align: center; color: var(--text-muted); font-size: 0.88rem; }
+
+        /* Профиль (справа) */
+        .header-actions { margin-left: auto; display: flex; align-items: center; }
+
+        .top-header .dropdown-toggle::after { display: none !important; }
+
+        .dropdown-arrow {
+            color: var(--accent-blue); font-size: 0.85rem; margin-left: 8px;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .dropdown-toggle[aria-expanded="true"] .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        /* Сайдбар */
+        .sidebar {
+            position: fixed; left: 0; top: var(--header-height); bottom: 0;
+            width: var(--sidebar-width); background: var(--bg-card);
+            border-right: 1px solid rgba(255,255,255,0.08);
+            overflow-y: auto; padding: 12px 0; z-index: 1020;
+        }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-track { background: var(--bg-main); }
+        .sidebar::-webkit-scrollbar-thumb { background: var(--accent-purple); border-radius: 2px; }
+
+        .sidebar-nav { list-style: none; padding: 0; margin: 0; }
+        .sidebar-nav li { margin-bottom: 2px; }
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+            color: var(--text-muted); text-decoration: none; transition: all 0.2s;
+            border-left: 3px solid transparent; font-size: 0.95rem;
+            position: relative;
+        }
+        .sidebar-nav a .sidebar-badge {
+            margin-left: auto;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            border-radius: 10px;
+            background: var(--accent-pink);
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+        .sidebar-nav a:hover { background: rgba(139,92,246,0.08); color: var(--text-main); }
+        .sidebar-nav a.active {
+            background: linear-gradient(90deg, rgba(139,92,246,0.15), rgba(236,72,153,0.08));
+            color: var(--text-main); border-left: 3px solid var(--accent-purple);
+        }
+        .sidebar-nav i { font-size: 1.2rem; width: 24px; text-align: center; }
+
+        /* Контент */
+        .main-content {
+            margin-left: var(--sidebar-width); padding: 30px;
+            min-height: calc(100vh - var(--header-height));
+        }
+
+        /* Дропдаун меню */
+        .dropdown-menu {
+            background: var(--bg-card) !important; border: 1px solid rgba(255,255,255,0.1) !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5); border-radius: 8px; padding: 8px 0;
+        }
+        .dropdown-item { color: var(--text-main) !important; padding: 8px 16px; font-size: 0.9rem; }
+        .dropdown-item:hover { background: rgba(139,92,246,0.15) !important; }
+        .dropdown-divider { border-color: rgba(255,255,255,0.1) !important; margin: 6px 0; }
+        .dropdown-menu-account { min-width: 280px; padding: 0; overflow: hidden; }
+        .account-switcher-panel { padding: 8px 0; }
+        .account-switcher-title {
+            padding: 4px 16px 8px; font-size: 0.72rem; text-transform: uppercase;
+            letter-spacing: 0.06em; color: var(--text-muted); font-weight: 600;
+        }
+        .account-switcher-row {
+            display: flex; align-items: center; gap: 4px; padding: 4px 8px 4px 12px;
+        }
+        .account-switcher-row--active { background: rgba(139,92,246,0.12); }
+        .account-switcher-main {
+            flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0;
+            color: var(--text-main); padding: 6px 4px; border-radius: 8px;
+        }
+        a.account-switcher-main:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+        .account-switcher-info { display: flex; flex-direction: column; min-width: 0; }
+        .account-switcher-name { font-size: 0.88rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .account-switcher-type { font-size: 0.72rem; color: var(--text-muted); }
+        .account-switcher-active-icon { color: var(--accent-purple); margin-left: auto; font-size: 0.9rem; }
+        .account-switcher-avatar {
+            width: 32px; height: 32px; flex-shrink: 0; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+            font-size: 0.75rem; font-weight: 700; color: #fff;
+        }
+        .account-switcher-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .account-switcher-avatar--rhombus { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+        .account-switcher-avatar--hexagon { clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+        .account-switcher-avatar--square { border-radius: 6px; }
+        .account-switcher-avatar--triangle { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+        .account-switcher-logout-form { margin: 0; }
+        .account-switcher-logout-btn {
+            border: none; background: transparent; color: var(--text-muted);
+            padding: 6px 8px; border-radius: 6px; cursor: pointer; line-height: 1;
+        }
+        .account-switcher-logout-btn:hover { color: #f87171; background: rgba(248,113,113,0.12); }
+        .account-switcher-add {
+            display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+            color: var(--accent-purple); text-decoration: none; font-size: 0.88rem;
+        }
+        .account-switcher-add:hover { background: rgba(139,92,246,0.08); color: var(--accent-pink); }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
+    <header class="top-header">
+        {% if user.is_authenticated %}
+        <button type="button" class="mobile-menu-btn" id="sidebarToggle" aria-label="Меню">
+            <i class="bi bi-list"></i>
+        </button>
+        {% endif %}
+        <!-- Логотип -->
+        <a href="{% url 'core:landing' %}" class="logo-block">
+            <div class="logo-icon"><i class="bi bi-play-fill text-white"></i></div>
+            <span class="logo-text">KVER</span>
+        </a>
+
+        <!-- Поиск + Колокольчик -->
+        <div class="search-block">
+            <div class="global-search-wrap" id="globalSearchWrap"
+                 data-suggest-url="{% url 'core:search_suggest' %}"
+                 data-search-url="{% url 'core:search' %}">
+                <div class="search-bar">
+                    <input type="text" id="globalSearchInput" class="form-control form-control-sm"
+                           placeholder="🔍 Поиск" autocomplete="off"
+                           value="{{ request.GET.q|default:'' }}">
+                </div>
+                <div class="search-dropdown" id="globalSearchDropdown" role="listbox"></div>
+            </div>
+            {% if user.is_authenticated %}
+            <div class="dropdown bell-wrap">
+                <a href="#" class="bell-icon dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Уведомления">
+                    <i class="bi bi-bell"></i>
+                    {% if unread_notifications_count %}
+                    <span class="bell-badge">{{ unread_notifications_count }}</span>
+                    {% endif %}
+                </a>
+                <div class="dropdown-menu dropdown-menu-end notifications-dropdown">
+                    {% if recent_notifications %}
+                        {% for notification in recent_notifications %}
+                        <a href="{% url 'accounts:notification_read' notification.pk %}"
+                           class="notification-item{% if not notification.is_read %} notification-item--unread{% endif %}">
+                            <div class="notification-item-title">{{ notification.title }}</div>
+                            <p class="notification-item-text">{{ notification.message }}</p>
+                            <div class="notification-item-time">{{ notification.created_at|timesince }} назад</div>
+                        </a>
+                        {% endfor %}
+                    {% else %}
+                        <div class="notifications-empty">Нет уведомлений</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Профиль -->
+        <div class="header-actions">
+            {% if user.is_authenticated %}
+            <div class="dropdown">
+                <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    {% include 'accounts/includes/navbar_avatar.html' %}
+                    <!-- Твоя галочка (переворачивается) -->
+                    <i class="bi bi-chevron-down dropdown-arrow"></i>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-account">
+                    {% include 'accounts/includes/account_switcher_dropdown.html' %}
+                </ul>
+            </div>
+            {% else %}
+            <a href="{% url 'accounts:login' %}" class="btn btn-sm" style="background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink)); color: white; border: none;">Войти</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- БОКОВОЕ МЕНЮ (только для авторизованных) -->
+    {% if user.is_authenticated %}
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <nav class="sidebar" id="sidebar">
+        <ul class="sidebar-nav">
+            <li><a href="{% url 'accounts:profile' user.pk %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}"><i class="bi bi-person"></i><span>Профиль</span></a></li>
+            <li><a href="{% url 'core:feed' %}" class="{% if request.resolver_match.url_name == 'feed' and request.resolver_match.namespace == 'core' %}active{% endif %}"><i class="bi bi-newspaper"></i><span>Лента</span></a></li>
+            <li><a href="{% url 'accounts:messenger' %}" class="{% if request.resolver_match.url_name == 'messenger' or request.resolver_match.url_name == 'chat' %}active{% endif %}"><i class="bi bi-chat-dots"></i><span>Мессенджер</span>{% if unread_messages_count %}<span class="sidebar-badge">{{ unread_messages_count }}</span>{% endif %}</a></li>
+            <li><a href="{% url 'accounts:subscriptions' %}" class="{% if request.resolver_match.url_name == 'subscriptions' %}active{% endif %}"><i class="bi bi-person-plus"></i><span>Подписки</span></a></li>
+            <li><a href="{% url 'accounts:photos' %}" class="{% if request.resolver_match.url_name == 'photos' %}active{% endif %}"><i class="bi bi-images"></i><span>Фотокарточки</span></a></li>
+            <li><a href="{% url 'media_app:covers_feed' %}" class="{% if request.resolver_match.url_name == 'covers_feed' %}active{% endif %}"><i class="bi bi-camera-video"></i><span>Каверы</span></a></li>
+            <li><a href="{% url 'media_app:performances_feed' %}" class="{% if request.resolver_match.url_name == 'performances_feed' %}active{% endif %}"><i class="bi bi-trophy"></i><span>Выступления</span></a></li>
+            <li><a href="{% url 'events:calendar' %}" class="{% if 'events' in request.path %}active{% endif %}"><i class="bi bi-calendar-event"></i><span>Мероприятия</span></a></li>
+            <li><hr class="border-secondary my-2" style="border-color: rgba(255,255,255,0.08) !important;"></li>
+            <li><a href="#"><i class="bi bi-question-circle"></i><span>Помощь</span></a></li>
+        </ul>
+    </nav>
+    {% endif %}
+
+    <!-- КОНТЕНТ -->
+    <main class="{% if user.is_authenticated %}main-content{% endif %}">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            var toggle = document.getElementById('sidebarToggle');
+            var sidebar = document.getElementById('sidebar');
+            var overlay = document.getElementById('sidebarOverlay');
+            if (!toggle || !sidebar) return;
+            function closeSidebar() {
+                sidebar.classList.remove('sidebar-open');
+                if (overlay) overlay.classList.remove('show');
+            }
+            toggle.addEventListener('click', function () {
+                sidebar.classList.toggle('sidebar-open');
+                if (overlay) overlay.classList.toggle('show');
+            });
+            if (overlay) overlay.addEventListener('click', closeSidebar);
+        })();
+    </script>
+    {% block extra_js %}{% endblock %}
+    <script src="{% static 'js/search.js' %}"></script>
+</body>
+</html>

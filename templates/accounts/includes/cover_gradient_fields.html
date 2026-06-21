@@ -1,0 +1,18 @@
+<div id="cover-gradient" class="cover-gradient-section">
+    <h5 class="profile-section-title mb-3">Градиент обложки</h5>
+    <p class="text-muted small mb-3">Выберите два цвета — они образуют фон шапки профиля.</p>
+    <div class="row g-3 align-items-end">
+        <div class="col-sm-4">
+            {% include 'accounts/includes/form_field.html' with field=start_field %}
+        </div>
+        <div class="col-sm-4">
+            {% include 'accounts/includes/form_field.html' with field=end_field %}
+        </div>
+        <div class="col-sm-4">
+            <div class="cover-gradient-preview-wrap">
+                <span class="profile-info-label mb-1">Предпросмотр</span>
+                <div class="cover-gradient-preview" data-gradient-preview></div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Фотокарточки — KVER{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4"><i class="bi bi-images"></i> Фотокарточки</h2>
+
+    <ul class="nav nav-pills mb-4">
+        <li class="nav-item">
+            <a class="nav-link {% if tab == 'mine' %}active{% endif %}" href="?tab=mine">Мои фото</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if tab == 'tagged' %}active{% endif %}" href="?tab=tagged">Отметки</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if tab == 'albums' %}active{% endif %}" href="?tab=albums">Альбомы</a>
+        </li>
+    </ul>
+
+    {% if tab == 'mine' %}
+    <div class="photo-card-upload mb-4 p-3 rounded" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
+        <h6 class="profile-section-title mb-3">Добавить фото</h6>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="upload_photo">
+            <div class="row g-3">
+                <div class="col-md-4">{% include 'accounts/includes/form_field.html' with field=photocard_form.image %}</div>
+                <div class="col-md-4">{% include 'accounts/includes/form_field.html' with field=photocard_form.caption %}</div>
+                <div class="col-md-4">{% include 'accounts/includes/form_field.html' with field=photocard_form.album %}</div>
+                <div class="col-12"><button type="submit" class="btn btn-neon btn-sm"><i class="bi bi-upload"></i> Загрузить</button></div>
+            </div>
+        </form>
+    </div>
+
+    {% if my_photos %}
+    <div class="photo-card-grid">
+        {% for card in my_photos %}
+        <div class="photo-card-item">
+            <div class="photo-card-image-wrap"><img src="{{ card.image.url }}" alt="{{ card.caption }}"></div>
+            <div class="photo-card-body">
+                {% if card.caption %}<p class="photo-card-caption">{{ card.caption }}</p>{% endif %}
+                {% if card.album %}<span class="text-muted small"><i class="bi bi-folder"></i> {{ card.album.title }}</span>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-info-text">У вас пока нет фотокарточек.</p>
+    {% endif %}
+
+    {% elif tab == 'tagged' %}
+    {% if tagged_photos %}
+    <div class="photo-card-grid">
+        {% for card in tagged_photos %}
+        <div class="photo-card-item">
+            <div class="photo-card-image-wrap"><img src="{{ card.image.url }}" alt="{{ card.caption }}"></div>
+            <div class="photo-card-body">
+                <a href="{% url 'accounts:profile' card.user.pk %}" class="text-muted small">@{{ card.user.nickname|default:card.user.username }}</a>
+                {% if card.caption %}<p class="photo-card-caption">{{ card.caption }}</p>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-info-text">Фото с вашими отметками пока нет.</p>
+    {% endif %}
+
+    {% elif tab == 'albums' %}
+    <div class="mb-4 p-3 rounded" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
+        <form method="post" class="d-flex gap-2 align-items-end">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_album">
+            <div class="flex-grow-1">{% include 'accounts/includes/form_field.html' with field=album_form.title %}</div>
+            <button type="submit" class="btn btn-neon btn-sm">Создать альбом</button>
+        </form>
+    </div>
+
+    {% if albums %}
+    <div class="row g-3">
+        {% for album in albums %}
+        <div class="col-md-6">
+            <div class="bg-card p-3 rounded">
+                <h5 class="text-light mb-2"><i class="bi bi-folder"></i> {{ album.title }}</h5>
+                <p class="text-muted small mb-2">{{ album.photos.count }} фото</p>
+                {% if album.photos.all %}
+                <div class="d-flex gap-1 flex-wrap">
+                    {% for photo in album.photos.all|slice:":4" %}
+                    <img src="{{ photo.image.url }}" alt="" style="width: 64px; height: 64px; object-fit: cover; border-radius: 6px;">
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-info-text">Создайте первый альбом для группировки фото.</p>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

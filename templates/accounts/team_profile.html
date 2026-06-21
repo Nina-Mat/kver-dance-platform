@@ -1,0 +1,260 @@
+{% extends 'accounts/profile_base.html' %}
+
+{% block title %}{{ team.name }} — KVER{% endblock %}
+
+{% block profile_avatar %}
+<div class="avatar-hexagon-wrap avatar-shape-filter">
+<div class="avatar-hexagon-md">
+    {% if team.logo %}
+    <img src="{{ team.logo.url }}" alt="{{ team.name }}">
+    {% else %}
+    <span class="avatar-letter-md">{{ team.name|first|upper }}</span>
+    {% endif %}
+</div>
+</div>
+{% endblock %}
+
+{% block profile_header_info %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 w-100">
+    <div>
+        <h1 class="profile-name">{{ team.name }}</h1>
+        {% if team.username %}
+        <span class="profile-nickname">@{{ team.username }}</span>
+        {% endif %}
+    </div>
+    <div class="profile-header-actions">
+        {% if is_owner %}
+        <a href="{% url 'accounts:team_edit' team.pk %}" class="btn btn-outline-neon btn-sm">
+            <i class="bi bi-pencil"></i> Редактировать
+        </a>
+        {% else %}
+        <a href="{% url 'accounts:chat' team.leader.pk %}" class="btn btn-neon btn-sm">
+            <i class="bi bi-envelope"></i> Написать
+        </a>
+        {% if is_subscribed %}
+        <form method="post" action="{% url 'accounts:unsubscribe' team.leader.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-neon btn-sm">
+                <i class="bi bi-person-check"></i> Вы подписаны
+            </button>
+        </form>
+        {% else %}
+        <form method="post" action="{% url 'accounts:subscribe' team.leader.pk %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-neon btn-sm">
+                <i class="bi bi-person-plus"></i> Подписаться
+            </button>
+        </form>
+        {% endif %}
+        {% if team.is_open_recruitment and not is_team_member %}
+            {% if has_pending_application %}
+            <button type="button" class="btn btn-outline-neon btn-sm" disabled>
+                <i class="bi bi-hourglass-split"></i> Заявка отправлена
+            </button>
+            {% else %}
+            <form method="post" action="{% url 'accounts:team_apply' team.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-neon btn-sm">
+                    <i class="bi bi-person-plus"></i> Подать заявку
+                </button>
+            </form>
+            {% endif %}
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<div class="profile-meta-row">
+    {% if team.city %}
+    <span><i class="bi bi-geo-alt"></i> {{ team.city }}</span>
+    {% endif %}
+    {% if team.founded_year %}
+    <span><i class="bi bi-calendar"></i> Основана в {{ team.founded_year }}</span>
+    {% endif %}
+    {% if team.is_open_recruitment %}
+    <span class="recruitment-open"><i class="bi bi-door-open"></i> Открыт набор</span>
+    {% else %}
+    <span class="recruitment-closed"><i class="bi bi-door-closed"></i> Закрыт набор</span>
+    {% endif %}
+</div>
+
+<div class="profile-stats-row">
+    <span class="stat-badge"><i class="bi bi-people"></i> {{ members_count }} участников</span>
+    <span class="stat-badge"><i class="bi bi-clock-history"></i> {{ team.years_active }} лет активности</span>
+    <span class="stat-badge"><i class="bi bi-camera-video"></i> {{ performances_count }} выступлений</span>
+</div>
+{% endblock %}
+
+{% block profile_tabs %}
+<ul class="nav nav-pills nav-fill" id="teamProfileTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="about-tab" data-bs-toggle="tab" data-bs-target="#about" type="button">
+            <i class="bi bi-info-circle"></i> О команде
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="members-tab" data-bs-toggle="tab" data-bs-target="#members" type="button">
+            <i class="bi bi-people"></i> Состав
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="covers-tab" data-bs-toggle="tab" data-bs-target="#covers" type="button">
+            <i class="bi bi-camera-video"></i> Каверы
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="performances-tab" data-bs-toggle="tab" data-bs-target="#performances" type="button">
+            <i class="bi bi-trophy"></i> Выступления
+        </button>
+    </li>
+    {% if is_owner %}
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button">
+            <i class="bi bi-gear"></i> Настройки
+        </button>
+    </li>
+    {% endif %}
+</ul>
+{% endblock %}
+
+{% block profile_content %}
+<div class="tab-content">
+    <!-- О команде -->
+    <div class="tab-pane fade show active" id="about">
+        {% if team.description %}
+        <p class="text-secondary mb-4" style="line-height: 1.7;">{{ team.description }}</p>
+        {% else %}
+        <p class="empty-info-text">Описание команды пока не заполнено.</p>
+        {% endif %}
+
+        <hr class="border-secondary my-3" style="border-color: rgba(255,255,255,0.08) !important;">
+
+        <h6 class="profile-section-title">Информация о команде</h6>
+        <div class="row profile-section">
+            <div class="col-sm-6 col-12 mb-3">
+                <span class="profile-info-label">Год основания</span>
+                <span class="profile-info-value">{{ team.founded_year|default:"Не указан" }}</span>
+            </div>
+            <div class="col-sm-6 col-12 mb-3">
+                <span class="profile-info-label">Город</span>
+                <span class="profile-info-value">{{ team.city|default:"Не указан" }}</span>
+            </div>
+            <div class="col-sm-6 col-12 mb-3">
+                <span class="profile-info-label">Стили танцев</span>
+                <span class="profile-info-value">{{ team.dance_styles|default:"Не указаны" }}</span>
+            </div>
+            <div class="col-sm-6 col-12 mb-3">
+                <span class="profile-info-label">Набор участников</span>
+                <span class="profile-info-value">
+                    {% if team.is_open_recruitment %}
+                    <span class="recruitment-open">Открыт</span>
+                    {% else %}
+                    <span class="recruitment-closed">Закрыт</span>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Состав -->
+    <div class="tab-pane fade" id="members">
+        {% if is_owner and add_member_form and members_slots_remaining %}
+        <div class="member-add-panel mb-4">
+            <h6 class="text-muted mb-3"><i class="bi bi-person-plus"></i> Добавить участника</h6>
+            <form method="post" action="{% url 'accounts:team_add_member' team.pk %}" class="member-add-form">
+                {% csrf_token %}
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-5">
+                        <label for="{{ add_member_form.user_identifier.id_for_label }}" class="form-label">
+                            {{ add_member_form.user_identifier.label }}
+                        </label>
+                        <div class="member-suggest-wrap"
+                             data-suggest-url="{% url 'accounts:subscription_suggest' %}"
+                             data-team-id="{{ team.pk }}">
+                            {{ add_member_form.user_identifier }}
+                            <div class="member-suggest-dropdown" id="memberSuggestDropdown"></div>
+                        </div>
+                        <p class="text-muted small mb-0 mt-1">Подсказки из ваших подписок</p>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ add_member_form.role.id_for_label }}" class="form-label">
+                            {{ add_member_form.role.label }}
+                        </label>
+                        {{ add_member_form.role }}
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-plus-lg"></i> Добавить
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <p class="text-muted small mb-0 mt-2">
+                Свободно мест: {{ members_slots_remaining }} из {{ team.max_members }}
+            </p>
+        </div>
+        {% elif is_owner and members_slots_remaining == 0 %}
+        <div class="alert alert-secondary py-2 mb-4">
+            Достигнут лимит участников ({{ team.max_members }}).
+        </div>
+        {% endif %}
+
+        <div class="members-grid">
+            {% for membership in members %}
+            <div class="member-card">
+                <a href="{% url 'accounts:profile' membership.user.pk %}" class="text-decoration-none">
+                    <div class="member-avatar">
+                        {% if membership.user.profile.photo %}
+                        <img src="{{ membership.user.profile.photo.url }}" alt="{{ membership.user.username }}">
+                        {% elif membership.user.photo %}
+                        <img src="{{ membership.user.photo.url }}" alt="{{ membership.user.username }}">
+                        {% else %}
+                        {{ membership.user.username|first|upper }}
+                        {% endif %}
+                    </div>
+                    <span class="member-name">{{ membership.user.username }}</span>
+                    <span class="member-role">{{ membership.get_role_display }}</span>
+                </a>
+                {% if is_owner %}
+                <form method="post"
+                      action="{% url 'accounts:team_remove_member' team.pk membership.pk %}"
+                      class="member-remove-form"
+                      onsubmit="return confirm('Удалить {{ membership.user.username }} из команды?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger mt-2" title="Удалить из команды">
+                        <i class="bi bi-person-dash"></i>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if not members %}
+        <p class="text-muted text-center mt-3 mb-0">Участников пока нет</p>
+        {% endif %}
+    </div>
+
+    <!-- Каверы -->
+    <div class="tab-pane fade" id="covers">
+        {% include 'accounts/includes/video_grid.html' with videos=team_videos empty_message="У команды пока нет каверов" %}
+    </div>
+
+    <!-- Выступления -->
+    <div class="tab-pane fade" id="performances">
+        {% include 'accounts/includes/video_grid.html' with videos=team_performances empty_message="У команды пока нет выступлений" %}
+    </div>
+
+    {% if is_owner %}
+    <!-- Настройки -->
+    <div class="tab-pane fade" id="settings">
+        {% include 'accounts/includes/profile_settings_tab.html' %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% load static %}
+{% block extra_js %}
+<script src="{% static 'js/member_suggest.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,26 @@
+<div class="profile-header-actions">
+    {% if is_owner %}
+    <a href="{% url 'accounts:profile_edit' profile_user.pk %}" class="btn btn-outline-neon btn-sm">
+        <i class="bi bi-pencil"></i> Редактировать
+    </a>
+    {% else %}
+    <a href="{% url 'accounts:chat' profile_user.pk %}" class="btn btn-neon btn-sm">
+        <i class="bi bi-envelope"></i> Написать
+    </a>
+    {% if is_subscribed %}
+    <form method="post" action="{% url 'accounts:unsubscribe' profile_user.pk %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-neon btn-sm">
+            <i class="bi bi-person-check"></i> Вы подписаны
+        </button>
+    </form>
+    {% else %}
+    <form method="post" action="{% url 'accounts:subscribe' profile_user.pk %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-neon btn-sm">
+            <i class="bi bi-person-plus"></i> Подписаться
+        </button>
+    </form>
+    {% endif %}
+    {% endif %}
+</div>

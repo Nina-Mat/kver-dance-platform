@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if query %}Поиск: {{ query }}{% else %}Поиск{% endif %} — KVER{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-3"><i class="bi bi-search"></i> Поиск</h2>
+
+    <form method="get" action="{% url 'core:search' %}" class="mb-4">
+        <div class="input-group">
+            <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Имя, @username, кавер, выступление..." autofocus>
+            <button type="submit" class="btn btn-neon">Найти</button>
+        </div>
+    </form>
+
+    {% if query and query|length < 2 %}
+    <p class="text-muted">Введите минимум 2 символа для поиска.</p>
+    {% elif query and total_count == 0 %}
+    <p class="empty-info-text">По запросу «{{ query }}» ничего не найдено.</p>
+    {% elif results %}
+    <p class="text-muted mb-4">Найдено результатов: {{ total_count }}</p>
+
+    {% for category, items in results.items %}
+    <section class="search-section mb-5">
+        <h5 class="profile-section-title mb-3">{{ items.0.category_label }}</h5>
+        <div class="list-group">
+            {% for item in items %}
+            <a href="{{ item.url }}" class="list-group-item list-group-item-action bg-card border-secondary text-light d-flex align-items-center gap-3 mb-2 rounded search-result-row">
+                {% if item.image_url %}
+                <img src="{{ item.image_url }}" alt="" class="search-result-thumb rounded">
+                {% else %}
+                <div class="search-result-thumb search-result-thumb-placeholder rounded d-flex align-items-center justify-content-center">
+                    <i class="bi bi-search"></i>
+                </div>
+                {% endif %}
+                <div>
+                    <div class="fw-semibold">{{ item.title }}</div>
+                    <div class="text-muted small">{{ item.subtitle }}</div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+    {% else %}
+    <p class="text-muted">Начните вводить запрос — люди, каверы, выступления, фотокарточки и мероприятия.</p>
+    {% endif %}
+</div>
+{% endblock %}

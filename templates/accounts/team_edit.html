@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Редактирование команды {{ team.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="bg-card p-4">
+                <h2 class="mb-1">Редактирование команды</h2>
+                <p class="text-muted mb-4">{{ team.name }}</p>
+
+                <form method="post" enctype="multipart/form-data" id="profileEditForm">
+                    {% csrf_token %}
+
+                    <h5 class="profile-section-title mb-3">Основная информация</h5>
+                    {% include 'accounts/includes/form_field.html' with field=form.name %}
+                    {% include 'accounts/includes/form_field.html' with field=form.username %}
+                    {% include 'accounts/includes/form_field.html' with field=form.city %}
+                    {% include 'accounts/includes/form_field.html' with field=form.founded_year %}
+                    {% include 'accounts/includes/form_field.html' with field=form.description %}
+                    {% include 'accounts/includes/form_field.html' with field=form.dance_styles %}
+
+                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                    <h5 class="profile-section-title mb-3">Медиа</h5>
+                    {% include 'accounts/includes/form_field.html' with field=form.logo %}
+
+                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                    {% include 'accounts/includes/cover_gradient_fields.html' with start_field=form.cover_gradient_start end_field=form.cover_gradient_end %}
+
+                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                    <h5 class="profile-section-title mb-3">Набор участников</h5>
+                    {% include 'accounts/includes/form_field.html' with field=form.is_open_recruitment %}
+                    {% include 'accounts/includes/form_field.html' with field=form.max_members %}
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-neon">Сохранить</button>
+                        <a href="{% url 'accounts:team_profile' team.pk %}" class="btn btn-outline-neon">Отмена</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/profile_form.js' %}"></script>
+{% endblock %}

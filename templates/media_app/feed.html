@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 700px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-gradient mb-0">Лента каверов</h1>
+        <a href="{% url 'media_app:upload' %}" class="btn btn-neon btn-sm">
+            <i class="bi bi-plus-lg"></i> Опубликовать
+        </a>
+    </div>
+
+    {% if covers %}
+        {% for cover in covers %}
+        <div class="bg-card p-3 mb-3" style="border-radius: 12px;">
+            {% include 'media_app/includes/cover_card.html' with cover=cover compact=True %}
+        </div>
+        {% endfor %}
+
+        {% if page_obj.has_other_pages %}
+        <nav class="mt-4 d-flex justify-content-center">
+            <ul class="pagination gap-2">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link bg-dark border-secondary text-white" href="?page={{ page_obj.previous_page_number }}">← Назад</a>
+                </li>
+                {% endif %}
+                <li class="page-item disabled">
+                    <span class="page-link bg-transparent border-0 text-muted">
+                        {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link bg-dark border-secondary text-white" href="?page={{ page_obj.next_page_number }}">Вперёд →</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    {% else %}
+        <div class="empty-state">
+            <i class="bi bi-camera-video"></i>
+            <p>Пока нет публикаций</p>
+            <a href="{% url 'media_app:upload' %}" class="btn btn-neon btn-sm mt-2">Загрузить первое видео</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

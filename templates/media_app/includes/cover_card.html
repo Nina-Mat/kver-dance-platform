@@ -1,0 +1,87 @@
+{% load media_extras %}
+
+<div class="cover-card mb-4">
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <a href="{% url 'accounts:profile' cover.author.pk %}" class="text-decoration-none d-flex align-items-center gap-2">
+            <span class="text-light">{{ cover.author.username }}</span>
+        </a>
+        <small class="text-muted">{{ cover.created_at|timesince }} назад</small>
+        {% if cover.source_type == 'youtube' %}
+        <span class="stat-badge ms-auto">YouTube</span>
+        {% else %}
+        <span class="stat-badge ms-auto">Файл</span>
+        {% endif %}
+    </div>
+
+    {% if cover.source_type == 'youtube' and cover.youtube_id %}
+    <a href="https://www.youtube.com/watch?v={{ cover.youtube_id }}" target="_blank" rel="noopener" class="text-decoration-none d-block mb-3">
+        <div class="position-relative cover-card-media">
+            {% if cover.thumbnail_url %}
+            <img src="{{ cover.thumbnail_url }}" alt="{{ cover.title }}" class="w-100">
+            {% else %}
+            <div class="cover-card-placeholder"><i class="bi bi-play-circle"></i></div>
+            {% endif %}
+            <div class="cover-card-play"><i class="bi bi-play-circle-fill"></i></div>
+        </div>
+    </a>
+    {% elif cover.source_type == 'upload' %}
+    <div class="mb-3">
+        <a href="{% url 'media_app:detail' cover.pk %}" class="text-decoration-none d-block">
+            <div class="position-relative cover-card-media">
+                {% if cover.cover_image %}
+                <img src="{{ cover.cover_image.url }}" alt="{{ cover.title }}" class="w-100">
+                {% elif cover.thumbnail_url %}
+                <img src="{{ cover.thumbnail_url }}" alt="{{ cover.title }}" class="w-100">
+                {% else %}
+                <div class="cover-card-placeholder"><i class="bi bi-camera-video"></i></div>
+                {% endif %}
+                <div class="cover-card-play"><i class="bi bi-play-circle-fill"></i></div>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+
+    <h5 class="mb-2">
+        {% if compact %}
+        <a href="{% url 'media_app:detail' cover.pk %}" class="text-decoration-none text-light">{{ cover.title }}</a>
+        {% else %}
+        {{ cover.title }}
+        {% endif %}
+    </h5>
+
+    {% if cover.description %}
+    <p class="text-secondary mb-2" style="line-height: 1.6;">{{ cover.description|linkify_mentions }}</p>
+    {% endif %}
+
+    {% if cover.mentioned_users.all %}
+    <div class="mb-2 d-flex flex-wrap gap-1">
+        {% for user in cover.mentioned_users.all %}
+        <a href="{% url 'accounts:profile' user.pk %}" class="btn btn-outline-neon btn-sm py-0 px-2" style="font-size: 0.75rem;">
+            @{{ user.nickname|default:user.username }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if cover.tags %}
+    <div class="mb-2">
+        {% for tag in cover.tags.split %}
+        <span class="stat-badge me-1">#{{ tag }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="d-flex gap-3 align-items-center text-muted small">
+        {% if cover.source_type == 'youtube' and cover.youtube_views %}
+        <span><i class="bi bi-eye"></i> {{ cover.youtube_views }}</span>
+        {% else %}
+        <span><i class="bi bi-eye"></i> {{ cover.views_kver }}</span>
+        {% endif %}
+        <span><i class="bi bi-heart"></i> {{ cover.likes_kver }}</span>
+        {% if not compact %}
+        <a href="{% url 'media_app:detail' cover.pk %}" class="ms-auto text-decoration-none">
+            <i class="bi bi-chat"></i> Комментарии
+        </a>
+        {% endif %}
+    </div>
+</div>

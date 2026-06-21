@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+
+
+
+{% block title %}Заявки — {{ event.title }} — KVER{% endblock %}
+
+
+
+{% block content %}
+
+<div class="container">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-10 col-12">
+
+            <div class="bg-card p-4">
+
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+
+                    <div>
+
+                        <h2 class="mb-1"><i class="bi bi-file-earmark-text"></i> Заявки</h2>
+
+                        <p class="text-muted mb-0">{{ event.title }}</p>
+
+                    </div>
+
+                    <a href="{% url 'events:detail' event.pk %}" class="btn btn-outline-neon btn-sm">
+
+                        <i class="bi bi-arrow-left"></i> К мероприятию
+
+                    </a>
+
+                </div>
+
+
+
+                <form method="get" class="mb-4 d-flex flex-wrap gap-2 align-items-center">
+
+                    <label class="text-muted small mb-0" for="statusFilter">Статус:</label>
+
+                    <select name="status" id="statusFilter" class="form-select form-select-sm"
+
+                            style="max-width: 200px; background: var(--bg-input); color: var(--text-main); border-color: rgba(255,255,255,0.1);"
+
+                            onchange="this.form.submit()">
+
+                        <option value="">Все статусы</option>
+
+                        {% for value, label in status_choices %}
+
+                        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </form>
+
+
+
+                {% if applications %}
+
+                {% for application in applications %}
+
+                <div class="event-list-item mb-3">
+
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+
+                        <div>
+
+                            <p class="event-list-title mb-1">
+
+                                <a href="{% url 'accounts:profile' application.applicant.pk %}" class="text-decoration-none">
+
+                                    {{ application.applicant.username }}
+
+                                </a>
+
+                            </p>
+
+                            <span class="event-list-meta">
+
+                                <i class="bi bi-clock"></i> {{ application.created_at|date:"d.m.Y H:i" }}
+
+                            </span>
+
+                        </div>
+
+                        <span class="{{ application.get_status_badge_class }}">{{ application.get_status_display }}</span>
+
+                    </div>
+
+
+
+                    {% if application.form_data %}
+
+                    <div class="row profile-section mb-3">
+
+                        {% for item in application.get_display_form_data %}
+
+                        <div class="col-sm-6 col-12 mb-2">
+
+                            <span class="profile-info-label">{{ item.label }}</span>
+
+                            <span class="profile-info-value">{{ item.value }}</span>
+
+                        </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                    {% endif %}
+
+
+
+                    {% if application.audio_file %}
+
+                    <div class="mb-3">
+
+                        <span class="profile-info-label d-block mb-2">Аудиотрек</span>
+
+                        <audio controls preload="none" style="width: 100%; max-width: 480px;">
+
+                            <source src="{{ application.audio_file.url }}" type="audio/mpeg">
+
+                            Ваш браузер не поддерживает воспроизведение аудио.
+
+                        </audio>
+
+                    </div>
+
+                    {% endif %}
+
+
+
+                    <div class="d-flex flex-wrap gap-2">
+
+                        {% if application.status != 'approved' %}
+
+                        <form method="post" action="{% url 'events:application_status' application.pk %}">
+
+                            {% csrf_token %}
+
+                            <input type="hidden" name="status" value="approved">
+
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+                            <button type="submit" class="btn btn-neon btn-sm">
+
+                                <i class="bi bi-check-lg"></i> Принять
+
+                            </button>
+
+                        </form>
+
+                        {% endif %}
+
+                        {% if application.status != 'rejected' %}
+
+                        <form method="post" action="{% url 'events:application_status' application.pk %}">
+
+                            {% csrf_token %}
+
+                            <input type="hidden" name="status" value="rejected">
+
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+                            <button type="submit" class="btn btn-outline-neon btn-sm">
+
+                                <i class="bi bi-x-lg"></i> Отклонить
+
+                            </button>
+
+                        </form>
+
+                        {% endif %}
+
+                        {% if application.status != 'pending' %}
+
+                        <form method="post" action="{% url 'events:application_status' application.pk %}">
+
+                            {% csrf_token %}
+
+                            <input type="hidden" name="status" value="pending">
+
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+                            <button type="submit" class="btn btn-outline-neon btn-sm">
+
+                                <i class="bi bi-arrow-counterclockwise"></i> На рассмотрение
+
+                            </button>
+
+                        </form>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+                {% endfor %}
+
+                {% else %}
+
+                <div class="empty-state">
+
+                    <i class="bi bi-file-earmark-text"></i>
+
+                    <p>Заявок пока нет</p>
+
+                    <small class="text-muted">Заявки появятся здесь после подачи участниками</small>
+
+                </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+

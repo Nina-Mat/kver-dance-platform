@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Django
+staticfiles/
+media/
+*.log
+
+# Secrets & local config
+.env
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Local DB (upload to hosting separately if needed)
+db.sqlite3

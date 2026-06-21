@@ -1,0 +1,36 @@
+{% comment %}
+
+Аватар в navbar — форма зависит от user.navbar_avatar_shape, фото через user.navbar_photo_url.
+
+{% endcomment %}
+
+{% with shape=user.navbar_avatar_shape %}
+
+{% if shape == 'triangle' %}
+
+<div class="avatar-nav-wrap avatar-nav-triangle">
+
+{% else %}
+
+<div class="avatar-nav-wrap">
+
+{% endif %}
+
+    <div class="avatar-nav avatar-{{ shape }}">
+
+        {% if user.navbar_photo_url %}
+
+        <img src="{{ user.navbar_photo_url }}" alt="{{ user.username }}">
+
+        {% else %}
+
+        <span class="avatar-letter">{{ user.username|first|upper }}</span>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endwith %}
+

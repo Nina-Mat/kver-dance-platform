@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Редактирование профиля — KVER{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="bg-card p-4">
+                <h2 class="mb-1">Редактирование профиля</h2>
+                <p class="text-muted mb-4">{{ profile_user.get_user_type_display }}</p>
+
+                <form method="post" enctype="multipart/form-data" id="profileEditForm">
+                    {% csrf_token %}
+
+                    {% if user_type == 'solo' and profile_form %}
+
+                    <h5 class="profile-section-title mb-3">Основная информация</h5>
+                    {% include 'accounts/includes/form_field.html' with field=user_form.username %}
+                    {% include 'accounts/includes/form_field.html' with field=user_form.email %}
+                    {% include 'accounts/includes/form_field.html' with field=user_form.nickname %}
+                    {% include 'accounts/includes/form_field.html' with field=user_form.city %}
+                    {% include 'accounts/includes/form_field.html' with field=user_form.phone %}
+                    {% include 'accounts/includes/form_field.html' with field=user_form.date_of_birth %}
+
+                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                    <h5 class="profile-section-title mb-3">Медиа</h5>
+                    {% include 'accounts/includes/form_field.html' with field=profile_form.photo %}
+
+                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                    {% include 'accounts/includes/cover_gradient_fields.html' with start_field=profile_form.cover_gradient_start end_field=profile_form.cover_gradient_end %}
+
+                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                    <h5 class="profile-section-title mb-3">Танцевальная информация</h5>
+                    {% include 'accounts/includes/form_field.html' with field=profile_form.bio %}
+                    {% include 'accounts/includes/form_field.html' with field=profile_form.dance_level %}
+                    {% include 'accounts/includes/form_field.html' with field=profile_form.dance_positions %}
+                    {% include 'accounts/includes/form_field.html' with field=profile_form.dance_styles %}
+                    {% include 'accounts/includes/form_field.html' with field=profile_form.favorite_groups %}
+                    {% include 'accounts/includes/form_field.html' with field=profile_form.experience_start_date %}
+                    {% include 'accounts/includes/form_field.html' with field=profile_form.mbti %}
+                    {% include 'accounts/includes/form_field.html' with field=profile_form.height %}
+                    {% include 'accounts/includes/form_field.html' with field=profile_form.is_available_for_collab %}
+
+                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                    {% include 'accounts/includes/social_links_fields.html' %}
+
+                    {% elif user_type == 'organizer' and type_form %}
+
+                    <h5 class="profile-section-title mb-3">Основная информация</h5>
+                    {% include 'accounts/includes/form_field.html' with field=user_form.username %}
+                    {% include 'accounts/includes/form_field.html' with field=user_form.email %}
+                    {% include 'accounts/includes/form_field.html' with field=user_form.nickname %}
+                    {% include 'accounts/includes/form_field.html' with field=user_form.city %}
+                    {% include 'accounts/includes/form_field.html' with field=user_form.bio %}
+
+                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                    <h5 class="profile-section-title mb-3">Медиа</h5>
+                    {% include 'accounts/includes/form_field.html' with field=user_form.photo %}
+
+                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                    {% include 'accounts/includes/cover_gradient_fields.html' with start_field=user_form.cover_gradient_start end_field=user_form.cover_gradient_end %}
+
+                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                    <h5 class="profile-section-title mb-3">Профиль организатора</h5>
+                    {% for field in type_form %}
+                    {% include 'accounts/includes/form_field.html' with field=field %}
+                    {% endfor %}
+
+                    {% elif user_type == 'specialist' and type_form %}
+
+                    <h5 class="profile-section-title mb-3">Основная информация</h5>
+                    {% include 'accounts/includes/form_field.html' with field=user_form.username %}
+                    {% include 'accounts/includes/form_field.html' with field=user_form.email %}
+                    {% include 'accounts/includes/form_field.html' with field=user_form.nickname %}
+                    {% include 'accounts/includes/form_field.html' with field=user_form.city %}
+                    {% include 'accounts/includes/form_field.html' with field=user_form.bio %}
+
+                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                    <h5 class="profile-section-title mb-3">Медиа</h5>
+                    {% include 'accounts/includes/form_field.html' with field=user_form.photo %}
+
+                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                    {% include 'accounts/includes/cover_gradient_fields.html' with start_field=user_form.cover_gradient_start end_field=user_form.cover_gradient_end %}
+
+                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                    <h5 class="profile-section-title mb-3">Профиль специалиста</h5>
+                    {% for field in type_form %}
+                    {% include 'accounts/includes/form_field.html' with field=field %}
+                    {% endfor %}
+
+                    {% endif %}
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-neon">Сохранить</button>
+                        <a href="{% url 'accounts:profile' profile_user.pk %}" class="btn btn-outline-neon">Отмена</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/profile_form.js' %}"></script>
+{% endblock %}

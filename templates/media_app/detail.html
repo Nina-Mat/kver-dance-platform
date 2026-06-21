@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% load media_extras %}
+
+
+
+{% block title %}{{ cover.title }} — KVER{% endblock %}
+
+
+
+{% block content %}
+
+<div class="container">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-8 col-md-10">
+
+            <div class="bg-card p-4">
+
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+
+                    <div>
+
+                        <span class="stat-badge mb-2 d-inline-block">
+
+                            {% if cover.source_type == 'youtube' %}YouTube{% else %}Локальный файл{% endif %}
+
+                        </span>
+
+                        <h1 class="h4 mb-1">{{ cover.title }}</h1>
+
+                        <p class="text-muted mb-0">
+
+                            <a href="{% url 'accounts:profile' cover.author.pk %}" class="text-decoration-none">
+
+                                {{ cover.author.username }}
+
+                            </a>
+
+                            · {{ cover.created_at|date:"d.m.Y H:i" }}
+
+                        </p>
+
+                    </div>
+
+                    <a href="{% url 'core:feed' %}" class="btn btn-outline-neon btn-sm">
+
+                        <i class="bi bi-arrow-left"></i> В ленту
+
+                    </a>
+
+                </div>
+
+
+
+                {% if cover.source_type == 'youtube' and cover.youtube_id %}
+
+                <a href="https://www.youtube.com/watch?v={{ cover.youtube_id }}" target="_blank" rel="noopener" class="text-decoration-none d-block mb-4">
+
+                    <div class="position-relative cover-card-media">
+
+                        {% if cover.thumbnail_url %}
+
+                        <img src="{{ cover.thumbnail_url }}" alt="{{ cover.title }}" class="w-100">
+
+                        {% endif %}
+
+                        <div class="cover-card-play"><i class="bi bi-play-circle-fill"></i></div>
+
+                    </div>
+
+                </a>
+
+                {% elif cover.video_file %}
+
+                <div class="mb-4">
+
+                    <video controls class="w-100" style="border-radius: 12px; max-height: 480px; background: #000;">
+
+                        <source src="{{ cover.video_file.url }}">
+
+                        Ваш браузер не поддерживает воспроизведение видео.
+
+                    </video>
+
+                </div>
+
+                {% endif %}
+
+
+
+                {% if cover.description %}
+
+                <p class="text-secondary mb-3" style="line-height: 1.7;">{{ cover.description|linkify_mentions }}</p>
+
+                {% endif %}
+
+
+
+                {% if cover.mentioned_users.all %}
+
+                <div class="mb-3 d-flex flex-wrap gap-2">
+
+                    {% for user in cover.mentioned_users.all %}
+
+                    <a href="{% url 'accounts:profile' user.pk %}" class="btn btn-outline-neon btn-sm">
+
+                        @{{ user.nickname|default:user.username }}
+
+                    </a>
+
+                    {% endfor %}
+
+                </div>
+
+                {% endif %}
+
+
+
+                {% if cover.tags %}
+
+                <div class="mb-4">
+
+                    {% for tag in cover.tags.split %}
+
+                    <span class="stat-badge me-1">#{{ tag }}</span>
+
+                    {% endfor %}
+
+                </div>
+
+                {% endif %}
+
+
+
+                <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+
+
+                <h5 class="profile-section-title mb-3">Комментарии</h5>
+
+                <form method="post" action="{% url 'media_app:comment' cover.pk %}" class="mb-4">
+
+                    {% csrf_token %}
+
+                    {% include 'accounts/includes/form_field.html' with field=comment_form.text %}
+
+                    {% include 'accounts/includes/form_field.html' with field=comment_form.is_anonymous %}
+
+                    <button type="submit" class="btn btn-neon btn-sm">Отправить</button>
+
+                </form>
+
+
+
+                {% if comments %}
+
+                {% for comment in comments %}
+
+                <div class="event-list-item mb-2">
+
+                    <strong>{% if comment.is_anonymous %}Аноним{% else %}{{ comment.user.username }}{% endif %}</strong>
+
+                    <span class="text-muted small ms-2">{{ comment.created_at|date:"d.m.Y H:i" }}</span>
+
+                    <p class="mb-0 mt-1 text-secondary">{{ comment.text|linkify_mentions }}</p>
+
+                </div>
+
+                {% endfor %}
+
+                {% else %}
+
+                <p class="text-muted">Комментариев пока нет.</p>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+

@@ -1,0 +1,43 @@
+<h5 class="profile-section-title mb-3">Социальные сети</h5>
+<p class="text-muted small mb-3">Укажите ссылки на основные соцсети. Можно добавить другие через «+».</p>
+
+{% include 'accounts/includes/form_field.html' with field=profile_form.social_vk %}
+{% include 'accounts/includes/form_field.html' with field=profile_form.social_telegram %}
+
+<div id="extra-social-links" data-extra-social-container>
+    {% for link in extra_social_links %}
+    <div class="extra-social-row row g-2 mb-2" data-extra-social-row>
+        <div class="col-md-4">
+            <input type="text" name="extra_social_name" class="form-control" placeholder="Название" value="{{ link.name }}">
+        </div>
+        <div class="col-md-7">
+            <input type="url" name="extra_social_url" class="form-control" placeholder="https://..." value="{{ link.url }}">
+        </div>
+        <div class="col-md-1 d-flex align-items-start">
+            <button type="button" class="btn btn-outline-danger btn-sm w-100" data-remove-social-row title="Удалить">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<button type="button" class="btn btn-outline-neon btn-sm mt-2" id="add-social-link-btn">
+    <i class="bi bi-plus-lg"></i> Добавить соцсеть
+</button>
+
+<template id="extra-social-row-template">
+    <div class="extra-social-row row g-2 mb-2" data-extra-social-row>
+        <div class="col-md-4">
+            <input type="text" name="extra_social_name" class="form-control" placeholder="Instagram, TikTok...">
+        </div>
+        <div class="col-md-7">
+            <input type="url" name="extra_social_url" class="form-control" placeholder="https://...">
+        </div>
+        <div class="col-md-1 d-flex align-items-start">
+            <button type="button" class="btn btn-outline-danger btn-sm w-100" data-remove-social-row title="Удалить">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </div>
+</template>
