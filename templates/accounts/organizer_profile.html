@@ -1,13 +1,13 @@
 {% extends 'accounts/profile_base.html' %}
 
-{% block title %}{{ profile_user.username }} — Организатор — KVER{% endblock %}
+{% block title %}{{ profile_user.display_name }} — Организатор — KVER{% endblock %}
 
 {% block profile_avatar %}
 <div class="avatar-square-md avatar-shape-filter">
     {% if profile_user.photo %}
-    <img src="{{ profile_user.photo.url }}" alt="{{ profile_user.username }}">
+    <img src="{{ profile_user.photo.url }}" alt="{{ profile_user.public_username }}">
     {% else %}
-    <span class="avatar-letter-md">{{ profile_user.username|first|upper }}</span>
+    <span class="avatar-letter-md">{{ profile_user.public_username|first|upper }}</span>
     {% endif %}
 </div>
 {% endblock %}
@@ -15,15 +15,15 @@
 {% block profile_header_info %}
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 w-100">
     <div>
-        <h1 class="profile-name">{{ profile_user.username }}</h1>
+        <h1 class="profile-name">{{ profile_user.display_name }}</h1>
         <span class="role-badge"><i class="bi bi-calendar-event"></i> Организатор</span>
         {% if profile_user.organizer_profile.is_verified %}
         <span class="role-badge stat-badge--success ms-1"><i class="bi bi-patch-check"></i> Подтверждён</span>
         {% elif is_owner %}
         <span class="role-badge stat-badge ms-1"><i class="bi bi-hourglass-split"></i> Ожидает подтверждения</span>
         {% endif %}
-        {% if profile_user.nickname %}
-        <span class="profile-nickname">@{{ profile_user.nickname }}</span>
+        {% if profile_user.organizer_profile.organization_name %}
+        <span class="profile-nickname">@{{ profile_user.public_username }}</span>
         {% endif %}
         <div class="profile-subscribers-count text-muted small mt-1">
             <i class="bi bi-person-plus"></i> {{ subscribers_count }} подписчик{{ subscribers_count|pluralize:",а,ов" }}
@@ -78,11 +78,13 @@
             <i class="bi bi-file-earmark-text"></i> Заявки
         </button>
     </li>
+    {% if is_owner %}
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button">
             <i class="bi bi-gear"></i> Настройки
         </button>
     </li>
+    {% endif %}
 </ul>
 {% endblock %}
 
@@ -251,8 +253,10 @@
     </div>
 
     <!-- Настройки -->
+    {% if is_owner %}
     <div class="tab-pane fade" id="settings">
         {% include 'accounts/includes/profile_settings_tab.html' %}
     </div>
+    {% endif %}
 </div>
 {% endblock %}

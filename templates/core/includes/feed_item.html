@@ -1,7 +1,7 @@
 {% if item.item_type == 'photocard' %}
 <article class="post-card post-card--feed">
     <header class="post-card__header">
-        <a href="{% url 'accounts:profile' item.obj.user.pk %}" class="post-card__author">
+        <a href="{% url 'accounts:profile' item.obj.user.pk %}" class="post-card__author d-flex align-items-center text-decoration-none">
             <div class="post-card__avatar">
                 {% include 'media_app/includes/comment_avatar.html' with comment_user=item.obj.user is_anonymous=False %}
             </div>
@@ -38,13 +38,14 @@
         <div class="post-card__actions">
             <span class="post-card__stat"><i class="bi bi-eye"></i> {{ item.obj.views_kver }}</span>
             {% if user.is_authenticated %}
-            <form method="post" action="{% url 'accounts:photocard_toggle_like' item.obj.pk %}" class="d-inline m-0">
+            <form method="post" action="{% url 'accounts:photocard_toggle_like' item.obj.pk %}" class="post-card__like-form">
                 {% csrf_token %}
                 <button type="submit"
                         class="cover-like-btn{% if item.obj.pk in user_liked_photo_card_ids %} cover-like-btn--active{% endif %} kver-action-tooltip"
-                        title="Поставить или убрать лайк">
-                    <i class="bi bi-heart{% if item.obj.pk in user_liked_photo_card_ids %}-fill{% endif %}"></i>
-                    {{ item.obj.likes_kver }}
+                        title="Поставить или убрать лайк"
+                        aria-pressed="{% if item.obj.pk in user_liked_photo_card_ids %}true{% else %}false{% endif %}">
+                    <i class="bi bi-heart{% if item.obj.pk in user_liked_photo_card_ids %}-fill{% endif %}" aria-hidden="true"></i>
+                    <span class="cover-like-btn__count">{{ item.obj.likes_kver }}</span>
                 </button>
             </form>
             {% else %}

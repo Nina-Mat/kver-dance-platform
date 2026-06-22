@@ -1,14 +1,14 @@
 {% extends 'accounts/profile_base.html' %}
 
-{% block title %}{{ profile_user.username }} — {{ profile_user.specialist_profile.get_specialization_display }} — KVER{% endblock %}
+{% block title %}{{ profile_user.public_username }} — {{ profile_user.specialist_profile.get_specialization_display }} — KVER{% endblock %}
 
 {% block profile_avatar %}
 <div class="avatar-triangle-wrap avatar-shape-filter">
     <div class="avatar-triangle-md">
         {% if profile_user.photo %}
-        <img src="{{ profile_user.photo.url }}" alt="{{ profile_user.username }}">
+        <img src="{{ profile_user.photo.url }}" alt="{{ profile_user.public_username }}">
         {% else %}
-        <span class="avatar-letter-md">{{ profile_user.username|first|upper }}</span>
+        <span class="avatar-letter-md">{{ profile_user.public_username|first|upper }}</span>
         {% endif %}
     </div>
 </div>
@@ -17,7 +17,7 @@
 {% block profile_header_info %}
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 w-100">
     <div>
-        <h1 class="profile-name">{{ profile_user.username }}</h1>
+        <h1 class="profile-name">@{{ profile_user.public_username }}</h1>
         <span class="role-badge"><i class="bi bi-camera"></i> {{ profile_user.specialist_profile.get_specialization_display }}</span>
     </div>
     <div class="profile-header-actions">
@@ -74,11 +74,13 @@
             <i class="bi bi-chat-square-text"></i> Отзывы
         </button>
     </li>
+    {% if is_owner %}
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button">
             <i class="bi bi-gear"></i> Настройки
         </button>
     </li>
+    {% endif %}
 </ul>
 {% endblock %}
 
@@ -169,8 +171,10 @@
     </div>
 
     <!-- Настройки -->
+    {% if is_owner %}
     <div class="tab-pane fade" id="settings">
         {% include 'accounts/includes/profile_settings_tab.html' %}
     </div>
+    {% endif %}
 </div>
 {% endblock %}

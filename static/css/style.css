@@ -68,6 +68,37 @@ a:hover {
     color: var(--text-muted) !important;
 }
 
+/* Контрастные поля ввода на тёмном фоне */
+.form-control,
+.form-select {
+    background-color: #0B1120;
+    border-color: rgba(255, 255, 255, 0.18);
+    color: #F8FAFC;
+}
+
+.form-control::placeholder {
+    color: #94A3B8;
+    opacity: 1;
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: #0B1120;
+    color: #F8FAFC;
+    border-color: #8B5CF6;
+    box-shadow: 0 0 0 0.2rem rgba(139, 92, 246, 0.25);
+}
+
+.input-group-text {
+    background-color: #0B1120;
+    border-color: rgba(255, 255, 255, 0.18);
+    color: #E2E8F0;
+}
+
+.form-text {
+    color: #CBD5E1 !important;
+}
+
 .text-light {
     color: var(--text-light) !important;
 }
@@ -237,12 +268,6 @@ footer {
 }
 
 @media (max-width: 991px) {
-    .sidebar {
-        transform: translateX(-100%);
-        transition: transform 0.3s ease;
-        z-index: 1025;
-    }
-
     .bottom-nav {
         position: fixed;
         bottom: 0;
@@ -1420,40 +1445,6 @@ footer {
     cursor: default;
 }
 
-.cover-like-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    font-size: inherit;
-    padding: 0;
-    cursor: pointer;
-    transition: color 0.15s;
-    outline: none;
-    box-shadow: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.cover-like-btn:hover {
-    color: var(--accent-pink);
-}
-
-.cover-like-btn:focus,
-.cover-like-btn:focus-visible,
-.cover-like-btn:active {
-    outline: none;
-    box-shadow: none;
-    background: transparent;
-}
-
-.cover-like-btn--active,
-.cover-like-btn--active .bi-heart,
-.cover-like-btn--active .bi-heart-fill {
-    color: var(--accent-pink);
-}
-
 .post-engagement__stat-liked,
 .post-engagement__stat-liked .bi-heart-fill {
     color: var(--accent-pink);
@@ -1764,6 +1755,7 @@ footer {
 }
 
 /* === МОБИЛЬНЫЙ HEADER / SIDEBAR === */
+/* Мобильное меню: стили в templates/base.html (inline), чтобы избежать конфликтов z-index/transform. */
 
 .mobile-menu-btn {
     display: none;
@@ -1780,35 +1772,23 @@ footer {
         display: block;
     }
 
-    .sidebar {
-        transform: translateX(-100%);
-        transition: transform 0.3s ease;
-    }
-
-    .sidebar.sidebar-open {
-        transform: translateX(0);
-    }
-
     .main-content {
         margin-left: 0 !important;
         padding: 15px;
         padding-bottom: 80px;
     }
-
-    .sidebar-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 1015;
-    }
-
-    .sidebar-overlay.show {
-        display: block;
-    }
 }
 
 /* === ЛЕНТА / ПУБЛИКАЦИИ (VK-style) === */
+
+.card.bg-card {
+    --bs-card-color: var(--text-main);
+    color: var(--text-main);
+}
+
+.card.bg-card > .card-body {
+    color: var(--text-main);
+}
 
 .post-card-shell {
     overflow: hidden;
@@ -1825,7 +1805,9 @@ footer {
 }
 
 .post-card__author {
-    display: flex;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap;
     align-items: center;
     gap: 0.65rem;
     text-decoration: none;
@@ -1835,10 +1817,23 @@ footer {
 }
 
 .post-card__avatar {
-    flex-shrink: 0;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.post-card__avatar .comment-avatar-wrap {
+    display: block;
 }
 
 .post-card__author-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1 1 auto;
     min-width: 0;
 }
 
@@ -1883,23 +1878,122 @@ footer {
 
 .post-card__body {
     padding: 0.6rem 1rem 0;
+    color: var(--text-main);
+}
+
+.post-card__youtube-label {
+    color: #22c55e;
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
 }
 
 .post-card__title {
     font-size: 0.95rem;
     font-weight: 700;
-    line-height: 1.4;
-    margin: 0 0 0.45rem;
+    line-height: 1.35;
+    margin: 0 0 0.35rem;
     color: var(--text-main);
 }
 
 .post-card__title a {
-    color: inherit;
+    color: var(--text-main);
     text-decoration: none;
 }
 
 .post-card__title a:hover {
     color: var(--accent-purple);
+}
+
+.post-card .post-text__content,
+.post-card-shell .post-text__content,
+.post-text__content {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text-light, #E2E8F0) !important;
+    white-space: pre-line;
+    word-break: break-word;
+}
+
+.post-card .post-text__content a,
+.post-card .post-text__content .mention-link,
+.post-card-shell .post-text__content a,
+.post-card-shell .post-text__content .mention-link,
+.post-text__content a,
+.post-text__content .mention-link {
+    color: var(--accent-blue, #38BDF8) !important;
+}
+
+.post-card__like-form {
+    display: inline-flex;
+    margin: 0;
+}
+
+button.cover-like-btn,
+.post-card__actions button.cover-like-btn,
+.post-engagement button.cover-like-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border: none !important;
+    border-radius: 0 !important;
+    background: none !important;
+    background-color: transparent !important;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 400;
+    line-height: 1;
+    min-width: 0;
+    min-height: 0;
+    padding: 0 !important;
+    margin: 0;
+    cursor: pointer;
+    transition: color 0.15s;
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+button.cover-like-btn:hover,
+.post-card__actions button.cover-like-btn:hover {
+    color: var(--accent-pink);
+    background: none !important;
+    background-color: transparent !important;
+}
+
+button.cover-like-btn:focus,
+button.cover-like-btn:focus-visible,
+button.cover-like-btn:active,
+.post-card__actions button.cover-like-btn:focus,
+.post-card__actions button.cover-like-btn:active {
+    outline: none !important;
+    box-shadow: none !important;
+    background: none !important;
+    background-color: transparent !important;
+    border: none !important;
+}
+
+button.cover-like-btn .bi-heart,
+button.cover-like-btn .bi-heart-fill {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+button.cover-like-btn:not(.cover-like-btn--active) .bi-heart {
+    color: var(--text-muted);
+}
+
+button.cover-like-btn--active,
+button.cover-like-btn--active .bi-heart-fill,
+button.cover-like-btn--active .cover-like-btn__count {
+    color: var(--accent-pink) !important;
+}
+
+.cover-like-btn__count {
+    color: inherit;
+    font-size: inherit;
 }
 
 .post-card__link {
@@ -1979,14 +2073,6 @@ footer {
     color: var(--text-muted);
     margin-left: auto;
     white-space: nowrap;
-}
-
-.post-text__content {
-    font-size: 0.9rem;
-    line-height: 1.5;
-    color: var(--text-secondary, #E2E8F0);
-    white-space: pre-line;
-    word-break: break-word;
 }
 
 .post-text__content--clamped {
@@ -2259,4 +2345,37 @@ footer {
     opacity: 0.5;
     cursor: not-allowed;
     pointer-events: none;
+}
+
+.settings-item--danger {
+    color: #dc3545;
+}
+
+.settings-item--danger:hover {
+    color: #bb2d3b;
+    background: rgba(220, 53, 69, 0.08);
+}
+
+.settings-item--danger i:first-child {
+    color: #dc3545;
+}
+
+.avatar-circle--deleted {
+    background: var(--surface-elevated, #2a2a2e);
+    opacity: 0.65;
+}
+
+.comment-item__author-deleted {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: var(--accent-purple, #8b5cf6);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.comment-item__author-deleted:hover {
+    text-decoration: underline;
 }

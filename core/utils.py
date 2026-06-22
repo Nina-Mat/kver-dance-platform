@@ -13,7 +13,14 @@ def get_kver_admin_user():
         if user:
             return user
 
-    return CustomUser.objects.filter(is_superuser=True, is_active=True).order_by('pk').first()
+    return get_kver_admin_users().first()
+
+
+def get_kver_admin_users():
+    """Все активные суперпользователи — получатели админ-уведомлений."""
+    from accounts.models import CustomUser
+
+    return CustomUser.objects.filter(is_superuser=True, is_active=True).order_by('pk')
 
 
 def is_kver_admin(user):

@@ -217,8 +217,14 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
         form.instance.user = self.request.user
         form.instance.media = CoverMedia.objects.get(pk=self.kwargs['pk'])
         form.instance.is_approved = True
+        if not form.instance.is_anonymous:
+            from accounts.comment_utils import comment_author_display_name
+            form.instance.author_display_name = comment_author_display_name(self.request.user)
+        response = super().form_valid(form)
+        from accounts.social_notifications import notify_cover_comment
+        notify_cover_comment(form.instance.media, self.request.user)
         messages.success(self.request, 'Комментарий опубликован.')
-        return super().form_valid(form)
+        return response
 
     def form_invalid(self, form):
         for field_errors in form.errors.values():
@@ -270,6 +276,8 @@ def toggle_like(request, pk):
         liked = False
     else:
         liked = True
+        from accounts.social_notifications import notify_cover_like
+        notify_cover_like(cover, request.user)
     count = cover.likes.count()
     cover.likes_kver = count
     cover.save(update_fields=['likes_kver'])

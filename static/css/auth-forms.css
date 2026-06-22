@@ -1,0 +1,47 @@
+/* Контрастные поля в формах входа и регистрации */
+.auth-form .form-label {
+    color: #F8FAFC;
+    font-weight: 600;
+}
+
+.auth-form .form-control {
+    background: #0B1120;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #F8FAFC;
+}
+
+.auth-form .form-control::placeholder {
+    color: #94A3B8;
+    opacity: 1;
+}
+
+.auth-form .form-control:focus {
+    background: #0B1120;
+    color: #F8FAFC;
+    border-color: #8B5CF6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
+}
+
+.auth-form .input-group-text {
+    background: #0B1120;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #E2E8F0;
+}
+
+.auth-form .form-hint {
+    color: #CBD5E1;
+    font-size: 0.85rem;
+    display: block;
+    margin-top: 6px;
+    line-height: 1.4;
+}
+
+.auth-form .invalid-feedback,
+.auth-form .text-danger {
+    color: #FCA5A5 !important;
+}
+
+.auth-form .login-link,
+.auth-form .login-links {
+    color: #CBD5E1;
+}

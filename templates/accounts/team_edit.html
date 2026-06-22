@@ -11,7 +11,7 @@
                 <h2 class="mb-1">Редактирование команды</h2>
                 <p class="text-muted mb-4">{{ team.name }}</p>
 
-                <form method="post" enctype="multipart/form-data" id="profileEditForm">
+                <form method="post" enctype="multipart/form-data" id="profileEditForm" class="auth-form">
                     {% csrf_token %}
 
                     <h5 class="profile-section-title mb-3">Основная информация</h5>
@@ -42,6 +42,14 @@
                         <a href="{% url 'accounts:team_profile' team.pk %}" class="btn btn-outline-neon">Отмена</a>
                     </div>
                 </form>
+
+                <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                <h5 class="profile-section-title mb-2 text-danger">Опасная зона</h5>
+                <p class="text-muted small mb-3">Удаление аккаунта необратимо: профиль команды, состав, публикации и переписка будут удалены.</p>
+                <a href="{% url 'accounts:delete_account' team.leader.pk %}" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-trash"></i> Удалить аккаунт команды
+                </a>
             </div>
         </div>
     </div>

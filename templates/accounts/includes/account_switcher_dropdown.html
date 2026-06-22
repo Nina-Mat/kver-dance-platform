@@ -9,27 +9,27 @@
                 {% if account.navbar_photo_url %}
                 <img src="{{ account.navbar_photo_url }}" alt="">
                 {% else %}
-                <span>{{ account.nickname|default:account.username|first|upper }}</span>
+                <span>{{ account.public_username|first|upper }}</span>
                 {% endif %}
             </span>
             <span class="account-switcher-info">
-                <span class="account-switcher-name">@{{ account.nickname|default:account.username }}</span>
+                <span class="account-switcher-name">@{{ account.public_username }}</span>
                 <span class="account-switcher-type">{{ account.get_user_type_display }}</span>
             </span>
             <i class="bi bi-check-circle-fill account-switcher-active-icon"></i>
         </div>
         {% else %}
         <a href="{% url 'accounts:switch_account' account.pk %}" class="account-switcher-main text-decoration-none kver-action-tooltip"
-           title="Переключиться на @{{ account.nickname|default:account.username }} без повторного входа">
+           title="Переключиться на @{{ account.public_username }} без повторного входа">
             <span class="account-switcher-avatar account-switcher-avatar--{{ account.navbar_avatar_shape }}">
                 {% if account.navbar_photo_url %}
                 <img src="{{ account.navbar_photo_url }}" alt="">
                 {% else %}
-                <span>{{ account.nickname|default:account.username|first|upper }}</span>
+                <span>{{ account.public_username|first|upper }}</span>
                 {% endif %}
             </span>
             <span class="account-switcher-info">
-                <span class="account-switcher-name">@{{ account.nickname|default:account.username }}</span>
+                <span class="account-switcher-name">@{{ account.public_username }}</span>
                 <span class="account-switcher-type">{{ account.get_user_type_display }}</span>
             </span>
         </a>
@@ -38,7 +38,7 @@
         <form method="post" action="{% url 'accounts:remove_account' account.pk %}" class="account-switcher-logout-form">
             {% csrf_token %}
             <button type="submit" class="account-switcher-logout-btn kver-action-tooltip"
-                title="Убрать @{{ account.nickname|default:account.username }} из списка быстрого переключения">
+                title="Убрать @{{ account.public_username }} из списка быстрого переключения">
                 <i class="bi bi-box-arrow-right"></i>
             </button>
         </form>

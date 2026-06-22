@@ -148,6 +148,28 @@ class CustomUser(AbstractUser):
             return False
         return self.subscribers.filter(subscriber=user).exists()
 
+    @property
+    def public_username(self):
+        """Уникальный @username для входа и отображения."""
+        if self.user_type == 'team':
+            team = getattr(self, 'team_profile', None)
+            if team and team.username:
+                return team.username
+        return self.username
+
+    @property
+    def display_name(self):
+        """Заголовок профиля: название команды/организации или @username."""
+        if self.user_type == 'team':
+            team = getattr(self, 'team_profile', None)
+            if team and team.name:
+                return team.name
+        if self.user_type == 'organizer':
+            profile = getattr(self, 'organizer_profile', None)
+            if profile and profile.organization_name:
+                return profile.organization_name
+        return self.public_username
+
 
 class Team(models.Model):
     """
@@ -369,6 +391,12 @@ class Notification(models.Model):
         ('organizer_verified', 'Организатор подтверждён'),
         ('organizer_rejected', 'Организатор отклонён'),
         ('new_user_registration', 'Новая регистрация'),
+        ('new_subscriber', 'Новый подписчик'),
+        ('photo_like', 'Лайк на фото'),
+        ('photo_comment', 'Комментарий к фото'),
+        ('cover_like', 'Лайк на публикацию'),
+        ('cover_comment', 'Комментарий к публикации'),
+        ('new_message', 'Новое сообщение'),
     ]
 
     recipient = models.ForeignKey(
@@ -416,6 +444,30 @@ class Notification(models.Model):
         related_name='notifications_sent',
         verbose_name='Инициатор',
     )
+    photo = models.ForeignKey(
+        'PhotoCard',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='notifications',
+        verbose_name='Фотокарточка',
+    )
+    cover = models.ForeignKey(
+        'media_app.CoverMedia',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='notifications',
+        verbose_name='Публикация',
+    )
+    conversation = models.ForeignKey(
+        'Conversation',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='notifications',
+        verbose_name='Диалог',
+    )
     is_read = models.BooleanField(default=False, verbose_name='Прочитано')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата')
 
@@ -444,6 +496,17 @@ class Notification(models.Model):
             return reverse('accounts:team_profile', kwargs={'pk': self.team_id}) + '#applications'
         if self.notification_type == 'event_application' and self.event_id:
             return reverse('events:detail', kwargs={'pk': self.event_id})
+        if self.notification_type == 'new_subscriber' and self.actor_id:
+            return reverse('accounts:profile', kwargs={'pk': self.actor_id})
+        if self.notification_type in ('photo_like', 'photo_comment') and self.photo_id:
+            return reverse('accounts:photocard_detail', kwargs={'pk': self.photo_id})
+        if self.notification_type in ('cover_like', 'cover_comment') and self.cover_id:
+            return reverse('media_app:detail', kwargs={'pk': self.cover_id})
+        if self.notification_type == 'new_message' and self.conversation_id:
+            conv = self.conversation
+            if conv.participant1_id == self.recipient_id:
+                return reverse('accounts:chat', kwargs={'pk': conv.participant2_id})
+            return reverse('accounts:chat', kwargs={'pk': conv.participant1_id})
         if self.team_id:
             return reverse('accounts:team_profile', kwargs={'pk': self.team_id})
         return reverse('accounts:profile', kwargs={'pk': self.recipient_id})
@@ -792,6 +855,12 @@ class PhotoCardComment(models.Model):
     )
     text = models.TextField(verbose_name='Текст комментария')
     is_anonymous = models.BooleanField(default=False, verbose_name='Анонимно')
+    author_display_name = models.CharField(
+        max_length=150,
+        blank=True,
+        verbose_name='Имя автора (снимок)',
+        help_text='Сохраняется при удалении аккаунта автора.',
+    )
     is_approved = models.BooleanField(default=False, verbose_name='Прошёл модерацию')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата')
 

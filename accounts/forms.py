@@ -52,7 +52,7 @@ class CustomUserCreationForm(UserCreationForm):
         self.helper.form_method = 'post'
         self.helper.add_input(Submit('submit', 'Создать аккаунт', css_class='btn-neon w-100'))
 
-        self.fields['username'].label = "Имя пользователя"
+        self.fields['username'].label = "Username (логин для входа)"
         self.fields['email'].label = "Email"
         self.fields['user_type'].label = "Тип аккаунта"
         self.fields['city'].label = "Город"
@@ -85,40 +85,60 @@ BOOTSTRAP_CHECKBOX = {'class': 'form-check-input'}
 BOOTSTRAP_COLOR = {'class': 'form-control form-control-color', 'type': 'color'}
 
 
+class DeleteAccountForm(forms.Form):
+    """Подтверждение удаления аккаунта."""
+
+    password = forms.CharField(
+        label='Текущий пароль',
+        widget=forms.PasswordInput(attrs={
+            **BOOTSTRAP_TEXT,
+            'autocomplete': 'current-password',
+        }),
+    )
+    confirm = forms.BooleanField(
+        label='Я понимаю, что удаление необратимо',
+        required=True,
+        widget=forms.CheckboxInput(attrs=BOOTSTRAP_CHECKBOX),
+    )
+
+
 def normalize_nickname(value):
     """Нормализует @username: убирает @ и пробелы."""
     return (value or '').strip().lstrip('@')
 
 
+def validate_unique_public_username(username, *, exclude_user_pk=None, exclude_team_pk=None):
+    """Проверяет формат и глобальную уникальность username (логин / @username)."""
+    username = normalize_nickname(username)
+    if not username:
+        raise ValidationError('Username обязателен для заполнения.')
+
+    if not NICKNAME_PATTERN.match(username):
+        raise ValidationError(f'Username должен содержать {NICKNAME_FORMAT_HINT}')
+
+    user_qs = CustomUser.objects.filter(
+        Q(username__iexact=username) | Q(nickname__iexact=username),
+    )
+    if exclude_user_pk:
+        user_qs = user_qs.exclude(pk=exclude_user_pk)
+    if user_qs.exists():
+        raise ValidationError('Этот username уже занят. Выберите другой.')
+
+    team_qs = Team.objects.filter(username__iexact=username)
+    if exclude_team_pk:
+        team_qs = team_qs.exclude(pk=exclude_team_pk)
+    if team_qs.exists():
+        raise ValidationError('Этот username уже занят. Выберите другой.')
+
+
 def validate_unique_nickname(nickname, instance_pk=None):
     """Проверяет формат и уникальность публичного @username."""
-    if not nickname:
-        raise ValidationError('Уникальное имя (@username) обязательно для заполнения.')
-
-    if not NICKNAME_PATTERN.match(nickname):
-        raise ValidationError(f'Имя должно содержать {NICKNAME_FORMAT_HINT}')
-
-    qs = CustomUser.objects.filter(nickname__iexact=nickname)
-    if instance_pk:
-        qs = qs.exclude(pk=instance_pk)
-    if qs.exists():
-        raise ValidationError('Это @username уже занят. Выберите другое имя.')
+    validate_unique_public_username(nickname, exclude_user_pk=instance_pk)
 
 
 def validate_unique_team_username(username, instance_pk=None):
     """Проверяет формат и уникальность @username команды."""
-    username = normalize_nickname(username)
-    if not username:
-        raise ValidationError('Уникальное имя (@username) обязательно для заполнения.')
-
-    if not NICKNAME_PATTERN.match(username):
-        raise ValidationError(f'Имя должно содержать {NICKNAME_FORMAT_HINT}')
-
-    qs = Team.objects.filter(username__iexact=username)
-    if instance_pk:
-        qs = qs.exclude(pk=instance_pk)
-    if qs.exists():
-        raise ValidationError('Это @username уже занят другой командой.')
+    validate_unique_public_username(username, exclude_team_pk=instance_pk)
 
 
 def format_phone(value):
@@ -313,17 +333,16 @@ class CustomUserForm(forms.ModelForm):
     class Meta:
         model = CustomUser
         fields = [
-            'username', 'email', 'nickname', 'city', 'bio', 'photo',
+            'username', 'email', 'city', 'bio', 'photo',
             'cover_gradient_start', 'cover_gradient_end',
         ]
         widgets = {
-            'username': forms.TextInput(attrs=BOOTSTRAP_TEXT),
-            'email': forms.EmailInput(attrs=BOOTSTRAP_TEXT),
-            'nickname': forms.TextInput(attrs={
+            'username': forms.TextInput(attrs={
                 **BOOTSTRAP_TEXT,
                 'placeholder': 'username',
                 'data-nickname-field': 'true',
             }),
+            'email': forms.EmailInput(attrs=BOOTSTRAP_TEXT),
             'city': forms.TextInput(attrs={
                 **BOOTSTRAP_TEXT,
                 'placeholder': 'Москва, Ростов-на-Дону...',
@@ -337,9 +356,8 @@ class CustomUserForm(forms.ModelForm):
             'cover_gradient_end': forms.TextInput(attrs=BOOTSTRAP_COLOR),
         }
         labels = {
-            'username': 'Имя пользователя',
+            'username': 'Username (логин для входа)',
             'email': 'Email',
-            'nickname': 'Уникальное имя (@username)',
             'city': 'Город',
             'bio': 'О себе (кратко)',
             'photo': 'Фото профиля',
@@ -347,32 +365,33 @@ class CustomUserForm(forms.ModelForm):
             'cover_gradient_end': 'Цвет градиента (конец)',
         }
         help_texts = {
-            'nickname': 'Обязательное поле. Одно уникальное имя на весь сайт.',
+            'username': 'Уникальный username на весь сайт — по нему входят и вас находят.',
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance and getattr(self.instance, 'user_type', None) != 'team':
-            self.fields['nickname'].required = True
+    def clean_username(self):
+        username = normalize_nickname(self.cleaned_data.get('username'))
+        validate_unique_public_username(
+            username,
+            exclude_user_pk=self.instance.pk if self.instance else None,
+        )
+        return username
 
-    def clean_nickname(self):
-        nickname = normalize_nickname(self.cleaned_data.get('nickname'))
-        validate_unique_nickname(nickname, self.instance.pk if self.instance else None)
-        return nickname
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.nickname = None
+        if commit:
+            user.save()
+            self.save_m2m()
+        return user
 
 
 class SoloProfileEditForm(CustomUserForm):
     """Основные поля сольного танцора без дублирования bio/photo в UserProfile."""
 
     class Meta(CustomUserForm.Meta):
-        fields = ['username', 'email', 'nickname', 'city', 'phone', 'date_of_birth']
+        fields = ['username', 'email', 'city', 'phone', 'date_of_birth']
         widgets = {
             **CustomUserForm.Meta.widgets,
-            'nickname': forms.TextInput(attrs={
-                **BOOTSTRAP_TEXT,
-                'placeholder': 'username',
-                'data-nickname-field': 'true',
-            }),
             'phone': forms.TextInput(attrs={
                 **BOOTSTRAP_TEXT,
                 'placeholder': '+7 (999) 123-45-67',
@@ -386,17 +405,9 @@ class SoloProfileEditForm(CustomUserForm):
         }
         labels = {
             **CustomUserForm.Meta.labels,
-            'nickname': 'Уникальное имя (@username)',
             'phone': 'Телефон',
             'date_of_birth': 'Дата рождения',
         }
-        help_texts = {
-            'nickname': 'Обязательное поле. Одно уникальное имя на весь сайт — по нему вас находят.',
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['nickname'].required = True
 
     def clean_phone(self):
         return format_phone(self.cleaned_data.get('phone', ''))
@@ -537,7 +548,7 @@ class TeamProfileForm(forms.ModelForm):
         }
         labels = {
             'name': 'Название команды',
-            'username': 'Уникальное имя (@username)',
+            'username': 'Username команды (логин для входа)',
             'city': 'Город',
             'dance_styles': 'Стили танцев',
             'description': 'Описание команды',
@@ -549,13 +560,26 @@ class TeamProfileForm(forms.ModelForm):
             'max_members': 'Максимальное количество участников',
         }
         help_texts = {
-            'username': 'Обязательное поле. Одно уникальное имя на весь сайт.',
+            'username': 'Уникальный username команды — по нему входят в аккаунт.',
         }
 
     def clean_username(self):
         username = normalize_nickname(self.cleaned_data.get('username'))
-        validate_unique_team_username(username, self.instance.pk if self.instance else None)
+        validate_unique_public_username(
+            username,
+            exclude_user_pk=self.instance.leader_id if self.instance else None,
+            exclude_team_pk=self.instance.pk if self.instance else None,
+        )
         return username
+
+    def save(self, commit=True):
+        team = super().save(commit=commit)
+        if commit and team.leader_id and team.leader.username != team.username:
+            leader = team.leader
+            leader.username = team.username
+            leader.nickname = None
+            leader.save(update_fields=['username', 'nickname'])
+        return team
 
 
 class TeamMemberAddForm(forms.Form):

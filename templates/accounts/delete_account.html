@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Удаление аккаунта — KVER{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="bg-card p-4 border border-danger" style="border-color: rgba(239, 68, 68, 0.35) !important;">
+                <h2 class="mb-1 text-danger">Удаление аккаунта</h2>
+                <p class="text-muted mb-4">@{{ profile_user.public_username }} · {{ profile_user.get_user_type_display }}</p>
+
+                <div class="alert alert-danger py-3">
+                    <strong>Это действие необратимо.</strong> Будут удалены:
+                    <ul class="mb-0 mt-2">
+                        {% for item in deletion_warnings %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    {% include 'accounts/includes/form_field.html' with field=form.password %}
+                    {% include 'accounts/includes/form_field.html' with field=form.confirm %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="d-flex flex-wrap gap-2 mt-4">
+                        <button type="submit" class="btn btn-danger">Удалить аккаунт навсегда</button>
+                        <a href="{{ cancel_url }}" class="btn btn-outline-neon">Отмена</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

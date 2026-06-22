@@ -131,6 +131,12 @@ class Comment(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, verbose_name="Автор")
     text = models.TextField(verbose_name="Текст комментария")
     is_anonymous = models.BooleanField(default=False, verbose_name="Анонимно")
+    author_display_name = models.CharField(
+        max_length=150,
+        blank=True,
+        verbose_name="Имя автора (снимок)",
+        help_text="Сохраняется при удалении аккаунта автора.",
+    )
     is_approved = models.BooleanField(default=False, verbose_name="Прошел модерацию")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата")
 

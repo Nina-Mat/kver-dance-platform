@@ -11,7 +11,7 @@
                 <h2 class="mb-1">Редактирование профиля</h2>
                 <p class="text-muted mb-4">{{ profile_user.get_user_type_display }}</p>
 
-                <form method="post" enctype="multipart/form-data" id="profileEditForm">
+                <form method="post" enctype="multipart/form-data" id="profileEditForm" class="auth-form">
                     {% csrf_token %}
 
                     {% if user_type == 'solo' and profile_form %}
@@ -19,7 +19,6 @@
                     <h5 class="profile-section-title mb-3">Основная информация</h5>
                     {% include 'accounts/includes/form_field.html' with field=user_form.username %}
                     {% include 'accounts/includes/form_field.html' with field=user_form.email %}
-                    {% include 'accounts/includes/form_field.html' with field=user_form.nickname %}
                     {% include 'accounts/includes/form_field.html' with field=user_form.city %}
                     {% include 'accounts/includes/form_field.html' with field=user_form.phone %}
                     {% include 'accounts/includes/form_field.html' with field=user_form.date_of_birth %}
@@ -55,7 +54,6 @@
                     <h5 class="profile-section-title mb-3">Основная информация</h5>
                     {% include 'accounts/includes/form_field.html' with field=user_form.username %}
                     {% include 'accounts/includes/form_field.html' with field=user_form.email %}
-                    {% include 'accounts/includes/form_field.html' with field=user_form.nickname %}
                     {% include 'accounts/includes/form_field.html' with field=user_form.city %}
                     {% include 'accounts/includes/form_field.html' with field=user_form.bio %}
 
@@ -80,7 +78,6 @@
                     <h5 class="profile-section-title mb-3">Основная информация</h5>
                     {% include 'accounts/includes/form_field.html' with field=user_form.username %}
                     {% include 'accounts/includes/form_field.html' with field=user_form.email %}
-                    {% include 'accounts/includes/form_field.html' with field=user_form.nickname %}
                     {% include 'accounts/includes/form_field.html' with field=user_form.city %}
                     {% include 'accounts/includes/form_field.html' with field=user_form.bio %}
 
@@ -107,6 +104,14 @@
                         <a href="{% url 'accounts:profile' profile_user.pk %}" class="btn btn-outline-neon">Отмена</a>
                     </div>
                 </form>
+
+                <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
+
+                <h5 class="profile-section-title mb-2 text-danger">Опасная зона</h5>
+                <p class="text-muted small mb-3">Удаление аккаунта необратимо: профиль, публикации и переписка будут удалены.</p>
+                <a href="{% url 'accounts:delete_account' profile_user.pk %}" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-trash"></i> Удалить аккаунт
+                </a>
             </div>
         </div>
     </div>

@@ -26,7 +26,7 @@ def switch_account(request, pk):
     user = get_object_or_404(CustomUser, pk=pk)
     switch_to_account(request, user)
 
-    display = user.nickname or user.username
+    display = user.public_username
     messages.info(request, f'Вы переключились на @{display}')
     next_url = request.GET.get('next')
     if next_url:
@@ -43,7 +43,7 @@ def remove_account(request, pk):
         raise Http404
 
     user = get_object_or_404(CustomUser, pk=pk)
-    display = user.nickname or user.username
+    display = user.public_username
     remaining = remove_linked_account(request, pk)
 
     if request.user.pk == pk:
@@ -52,7 +52,7 @@ def remove_account(request, pk):
             switch_to_account(request, next_user)
             messages.info(
                 request,
-                f'Вы вышли из @{display}. Активен @{next_user.nickname or next_user.username}.',
+                f'Вы вышли из @{display}. Активен @{next_user.public_username}.',
             )
         else:
             logout(request)

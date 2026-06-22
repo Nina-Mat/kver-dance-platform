@@ -43,7 +43,7 @@ def notifications_context(request):
 
     qs = Notification.objects.filter(
         recipient=request.user,
-    ).select_related('team', 'actor', 'application')
+    ).select_related('team', 'actor', 'application', 'photo', 'cover', 'conversation')
 
     return {
         'unread_notifications_count': qs.filter(is_read=False).count(),

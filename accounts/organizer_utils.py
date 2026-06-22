@@ -1,6 +1,6 @@
 """Проверка и уведомления для организаторов мероприятий."""
 
-from core.utils import get_kver_admin_user
+from core.utils import get_kver_admin_users
 
 from .notifications import create_notification
 
@@ -21,18 +21,17 @@ def organizer_can_create_events(user):
 
 def notify_admin_new_organizer(organizer):
     """Отправляет администрации запрос на подтверждение организатора."""
-    admin = get_kver_admin_user()
-    if not admin or admin.pk == organizer.pk:
-        return
-
-    display_name = organizer.nickname or organizer.username
-    create_notification(
-        recipient=admin,
-        notification_type='organizer_verification',
-        title='Новый организатор',
-        message=(
-            f'@{display_name} зарегистрировался как организатор мероприятий '
-            f'и ожидает подтверждения аккаунта.'
-        ),
-        actor=organizer,
-    )
+    display_name = organizer.public_username
+    for admin in get_kver_admin_users():
+        if admin.pk == organizer.pk:
+            continue
+        create_notification(
+            recipient=admin,
+            notification_type='organizer_verification',
+            title='Новый организатор',
+            message=(
+                f'@{display_name} зарегистрировался как организатор мероприятий '
+                f'и ожидает подтверждения аккаунта.'
+            ),
+            actor=organizer,
+        )

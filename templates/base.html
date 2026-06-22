@@ -284,6 +284,38 @@
             padding: 0.25rem;
             cursor: pointer;
             line-height: 1;
+            position: relative;
+        }
+        .mobile-menu-btn .menu-badge,
+        .header-messenger-link .bell-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            border-radius: 8px;
+            background: var(--accent-pink);
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 700;
+            line-height: 16px;
+            text-align: center;
+        }
+        .header-messenger-link {
+            color: var(--text-muted);
+            font-size: 1.3rem;
+            padding: 6px;
+            border-radius: 6px;
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .header-messenger-link:hover {
+            color: var(--text-main);
+            background: rgba(255,255,255,0.05);
         }
 
         .sidebar-overlay {
@@ -296,13 +328,21 @@
             }
 
             .sidebar {
-                transform: translateX(-100%);
+                position: fixed;
+                left: 0;
+                top: var(--header-height);
+                bottom: 0;
+                width: var(--sidebar-width);
+                max-width: 85vw;
+                transform: translate3d(-100%, 0, 0);
                 transition: transform 0.3s ease;
-                z-index: 1040;
+                z-index: 1050;
+                visibility: visible;
+                pointer-events: auto;
             }
 
             .sidebar.sidebar-open {
-                transform: translateX(0);
+                transform: translate3d(0, 0, 0) !important;
             }
 
             .main-content {
@@ -315,11 +355,11 @@
                 position: fixed;
                 inset: 0;
                 background: rgba(0, 0, 0, 0.5);
-                z-index: 1035;
+                z-index: 1040;
             }
 
-            body.sidebar-menu-open {
-                overflow: hidden;
+            .sidebar-overlay.show {
+                display: block !important;
             }
         }
     </style>
@@ -332,6 +372,9 @@
         {% if user.is_authenticated %}
         <button type="button" class="mobile-menu-btn" id="sidebarToggle" aria-label="Меню">
             <i class="bi bi-list"></i>
+            {% if unread_messages_count %}
+            <span class="menu-badge">{{ unread_messages_count }}</span>
+            {% endif %}
         </button>
         {% endif %}
         <!-- Логотип -->
@@ -353,6 +396,12 @@
                 <div class="search-dropdown" id="globalSearchDropdown" role="listbox"></div>
             </div>
             {% if user.is_authenticated %}
+            <a href="{% url 'accounts:messenger' %}" class="header-messenger-link" title="Сообщения">
+                <i class="bi bi-chat-dots"></i>
+                {% if unread_messages_count %}
+                <span class="bell-badge">{{ unread_messages_count }}</span>
+                {% endif %}
+            </a>
             <div class="dropdown bell-wrap">
                 <a href="#" class="bell-icon dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Уведомления">
                     <i class="bi bi-bell"></i>
@@ -410,9 +459,9 @@
                     <!-- Твоя галочка (переворачивается) -->
                     <i class="bi bi-chevron-down dropdown-arrow"></i>
                 </a>
-                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-account">
+                <div class="dropdown-menu dropdown-menu-end dropdown-menu-account">
                     {% include 'accounts/includes/account_switcher_dropdown.html' %}
-                </ul>
+                </div>
             </div>
             {% else %}
             <a href="{% url 'accounts:login' %}" class="btn btn-sm" style="background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink)); color: white; border: none;">Войти</a>
@@ -443,10 +492,14 @@
     <main class="{% if user.is_authenticated %}main-content{% endif %}">
         {% if messages %}
             {% for message in messages %}
-                <div class="alert alert-{% if 'error' in message.tags %}danger{% else %}{{ message.tags }}{% endif %}{% if 'moderation' in message.tags %} moderation{% endif %} alert-dismissible fade show" role="alert">
+                {% if 'moderation' in message.tags %}
+                <div id="kver-moderation-message" class="d-none" aria-hidden="true">{{ message }}</div>
+                {% else %}
+                <div class="alert alert-{% if 'error' in message.tags %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
                     {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
+                {% endif %}
             {% endfor %}
         {% endif %}
 
@@ -454,6 +507,23 @@
     </main>
 
     {% include 'core/includes/moderation_policy_modal.html' %}
+
+    <div class="modal fade" id="deletedProfileModal" tabindex="-1" aria-labelledby="deletedProfileModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deletedProfileModalLabel">Профиль удалён</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body">
+                    Этот профиль был удалён.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Понятно</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script id="kver-stop-words" type="application/json">{{ moderation_stop_words_json|safe }}</script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -463,15 +533,13 @@
             var sidebar = document.getElementById('sidebar');
             var overlay = document.getElementById('sidebarOverlay');
             if (!toggle || !sidebar) return;
-            function closeSidebar() {
-                sidebar.classList.remove('sidebar-open');
-                if (overlay) overlay.classList.remove('show');
-                document.body.classList.remove('sidebar-menu-open');
-            }
             function openSidebar() {
                 sidebar.classList.add('sidebar-open');
                 if (overlay) overlay.classList.add('show');
-                document.body.classList.add('sidebar-menu-open');
+            }
+            function closeSidebar() {
+                sidebar.classList.remove('sidebar-open');
+                if (overlay) overlay.classList.remove('show');
             }
             toggle.addEventListener('click', function () {
                 if (sidebar.classList.contains('sidebar-open')) {

@@ -134,6 +134,12 @@
             return;
         }
         var trigger = document.querySelector('[data-bs-target="' + hash + '"]');
+        if (!trigger) {
+            if (hash === '#settings' && window.history && window.history.replaceState) {
+                window.history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+            return;
+        }
         if (trigger && window.bootstrap && bootstrap.Tab) {
             bootstrap.Tab.getOrCreateInstance(trigger).show();
         }

@@ -20,7 +20,7 @@ from django.urls import reverse, reverse_lazy
 
 from django.http import Http404, JsonResponse
 
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 
 
 
@@ -60,9 +60,13 @@ from .forms import (
 
     TeamApplicationForm,
 
+    DeleteAccountForm,
+
     normalize_nickname,
 
     validate_unique_nickname,
+
+    validate_unique_public_username,
 
     validate_unique_team_username,
 
@@ -76,6 +80,7 @@ from .social_views import get_profile_social_context
 from .multi_account import (
     add_linked_account,
     clear_linked_accounts,
+    remove_linked_account,
     get_linked_account_ids,
     save_linked_account_ids,
     SESSION_KEY,
@@ -105,7 +110,7 @@ def get_user_cover_style(user):
 
 def resolve_login_username(identifier):
 
-    """Находит username для входа по логину или @nickname."""
+    """Находит username для входа по @username или логину."""
 
     identifier = normalize_nickname(identifier)
 
@@ -128,6 +133,14 @@ def resolve_login_username(identifier):
     if user:
 
         return user.username
+
+
+
+    team = Team.objects.filter(username__iexact=identifier).select_related('leader').first()
+
+    if team:
+
+        return team.leader.username
 
 
 
@@ -182,7 +195,7 @@ class CustomLoginView(View):
 
         if user is not None:
 
-            display_name = user.nickname or user.username
+            display_name = user.public_username
             is_add_account = request.POST.get('add_account') == '1'
 
             if is_add_account and request.user.is_authenticated:
@@ -194,7 +207,7 @@ class CustomLoginView(View):
                     add_linked_account(request, user)
                     messages.success(
                         request,
-                        f'Аккаунт @{display_name} добавлен. Вы по-прежнему в @{request.user.nickname or request.user.username}.',
+                        f'Аккаунт @{display_name} добавлен. Вы по-прежнему в @{request.user.public_username}.',
                     )
                 return redirect('core:feed')
 
@@ -267,9 +280,7 @@ class RegisterView(View):
 
     def post(self, request):
 
-        username = request.POST.get('username', '').strip()
-
-        nickname = normalize_nickname(request.POST.get('nickname', ''))
+        username = normalize_nickname(request.POST.get('username', ''))
 
         team_username = normalize_nickname(request.POST.get('team_username', ''))
 
@@ -287,7 +298,6 @@ class RegisterView(View):
 
         form_data = {
             'username': username,
-            'nickname': nickname,
             'team_name': team_name,
             'team_username': team_username,
             'email': email,
@@ -302,30 +312,31 @@ class RegisterView(View):
             field_errors['password2'] = 'Пароли не совпадают.'
             return self._render(request, user_type=user_type, field_errors=field_errors, form_data=form_data, add_account=add_account)
 
-        if CustomUser.objects.filter(username=username).exists():
-            field_errors['username'] = 'Пользователь с таким логином уже существует.'
+        if not email:
+            field_errors['email'] = 'Email обязателен.'
             return self._render(request, user_type=user_type, field_errors=field_errors, form_data=form_data, add_account=add_account)
 
         if user_type == 'team':
             if not team_username:
-                field_errors['team_username'] = 'Укажите @username команды.'
+                field_errors['team_username'] = 'Укажите username команды.'
                 return self._render(request, user_type=user_type, field_errors=field_errors, form_data=form_data, add_account=add_account)
             try:
-                validate_unique_team_username(team_username)
+                validate_unique_public_username(team_username)
             except ValidationError as exc:
                 field_errors['team_username'] = exc.messages[0]
                 return self._render(request, user_type=user_type, field_errors=field_errors, form_data=form_data, add_account=add_account)
             if not team_name:
                 field_errors['team_name'] = 'Укажите название команды.'
                 return self._render(request, user_type=user_type, field_errors=field_errors, form_data=form_data, add_account=add_account)
+            username = team_username
         else:
-            if not nickname:
-                field_errors['nickname'] = 'Уникальное @username обязательно.'
+            if not username:
+                field_errors['username'] = 'Username обязателен.'
                 return self._render(request, user_type=user_type, field_errors=field_errors, form_data=form_data, add_account=add_account)
             try:
-                validate_unique_nickname(nickname)
+                validate_unique_public_username(username)
             except ValidationError as exc:
-                field_errors['nickname'] = exc.messages[0]
+                field_errors['username'] = exc.messages[0]
                 return self._render(request, user_type=user_type, field_errors=field_errors, form_data=form_data, add_account=add_account)
 
         user = CustomUser.objects.create_user(
@@ -338,7 +349,7 @@ class RegisterView(View):
 
             user_type=user_type,
 
-            nickname=nickname if user_type != 'team' else None,
+            nickname=None,
 
         )
 
@@ -373,10 +384,10 @@ class RegisterView(View):
         from .admin_notifications import notify_admin_new_user
         notify_admin_new_user(user)
 
-        display_name = user.nickname or user.username or team_username
+        display_name = user.public_username
         if add_account and request.user.is_authenticated:
             add_linked_account(request, user)
-            current_name = request.user.nickname or request.user.username
+            current_name = request.user.public_username
             messages.success(
                 request,
                 f'Аккаунт @{display_name} создан и добавлен в переключатель. '
@@ -427,7 +438,10 @@ class ProfileView(View):
 
             'profile_user': profile_user,
 
-            'is_owner': request.user.is_authenticated and request.user == profile_user,
+            'is_owner': (
+                request.user.is_authenticated
+                and request.user.pk == profile_user.pk
+            ),
 
             'cover_style': get_user_cover_style(profile_user),
 
@@ -910,7 +924,7 @@ def team_profile(request, pk):
 
 
 
-    is_owner = request.user.is_authenticated and request.user == team.leader
+    is_owner = request.user.is_authenticated and request.user.pk == team.leader_id
 
     add_member_form = None
     members_slots_remaining = None
@@ -1251,6 +1265,93 @@ def team_edit(request, pk):
     return render(request, 'accounts/team_edit.html', context)
 
 
+def _account_deletion_warnings(user):
+    warnings = [
+        'Профиль и персональные данные',
+        'Ваши публикации: фото, каверы, мероприятия',
+        'Подписки, уведомления и переписка',
+    ]
+    if user.user_type == 'team':
+        warnings.append('Профиль команды, состав и заявки участников')
+    elif user.user_type == 'organizer':
+        warnings.append('Созданные мероприятия и заявки участников')
+    warnings.append(
+        'Комментарии на чужих публикациях останутся без ссылки на профиль',
+    )
+    return warnings
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def delete_account(request, pk):
+    """Безвозвратное удаление аккаунта пользователем."""
+    profile_user = get_object_or_404(CustomUser, pk=pk)
+    if request.user.pk != profile_user.pk:
+        raise Http404
+
+    if profile_user.is_superuser:
+        messages.error(request, 'Аккаунт администратора нельзя удалить через сайт.')
+        return redirect('accounts:profile', pk=profile_user.pk)
+
+    if profile_user.user_type == 'team':
+        cancel_url = (
+            reverse('accounts:team_profile', kwargs={'pk': profile_user.team_profile.pk})
+            + '#settings'
+        )
+    else:
+        cancel_url = reverse('accounts:profile', kwargs={'pk': profile_user.pk}) + '#settings'
+
+    if request.method == 'GET':
+        return render(request, 'accounts/delete_account.html', {
+            'profile_user': profile_user,
+            'form': DeleteAccountForm(),
+            'deletion_warnings': _account_deletion_warnings(profile_user),
+            'cancel_url': cancel_url,
+        })
+
+    form = DeleteAccountForm(request.POST)
+    if not form.is_valid():
+        return render(request, 'accounts/delete_account.html', {
+            'profile_user': profile_user,
+            'form': form,
+            'deletion_warnings': _account_deletion_warnings(profile_user),
+            'cancel_url': cancel_url,
+        })
+
+    if not authenticate(
+        request,
+        username=profile_user.username,
+        password=form.cleaned_data['password'],
+    ):
+        form.add_error('password', 'Неверный пароль.')
+        return render(request, 'accounts/delete_account.html', {
+            'profile_user': profile_user,
+            'form': form,
+            'deletion_warnings': _account_deletion_warnings(profile_user),
+            'cancel_url': cancel_url,
+        })
+
+    display = profile_user.public_username
+    remaining = remove_linked_account(request, profile_user.pk)
+    profile_user.delete()
+    logout(request)
+
+    if remaining:
+        next_user = CustomUser.objects.filter(pk=remaining[-1]).first()
+        if next_user:
+            login(request, next_user, backend='django.contrib.auth.backends.ModelBackend')
+            request.session[SESSION_KEY] = remaining
+            request.session.modified = True
+            messages.success(
+                request,
+                f'Аккаунт @{display} удалён. Вы вошли как @{next_user.public_username}.',
+            )
+            return redirect('core:feed')
+
+    clear_linked_accounts(request)
+    messages.success(request, f'Аккаунт @{display} удалён.')
+    return redirect('core:landing')
+
 
 
 
@@ -1395,6 +1496,8 @@ def photocard_toggle_like(request, pk):
         liked = False
     else:
         liked = True
+        from .social_notifications import notify_photo_like
+        notify_photo_like(photo, request.user)
     count = photo.likes.count()
     photo.likes_kver = count
     photo.save(update_fields=['likes_kver'])
@@ -1414,7 +1517,12 @@ def photocard_comment(request, pk):
         comment.user = request.user
         comment.photo = photo
         comment.is_approved = True
+        if not comment.is_anonymous:
+            from .comment_utils import comment_author_display_name
+            comment.author_display_name = comment_author_display_name(request.user)
         comment.save()
+        from .social_notifications import notify_photo_comment
+        notify_photo_comment(photo, request.user)
         messages.success(request, 'Комментарий опубликован.')
     else:
         for field_errors in form.errors.values():

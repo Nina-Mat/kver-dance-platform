@@ -62,6 +62,8 @@ def subscribe(request, pk):
         target=target,
     )
     if created:
+        from .social_notifications import notify_new_subscriber
+        notify_new_subscriber(target, request.user)
         messages.success(request, f'Вы подписались на @{target.nickname or target.username}.')
     return _redirect_back(request, 'accounts:profile', pk=pk)
 
@@ -188,10 +190,18 @@ def chat_detail(request, pk):
                 text=text,
             )
             conversation.save()
+            from .social_notifications import notify_new_message
+            notify_new_message(conversation, request.user, text)
         return redirect('accounts:chat', pk=other_user.pk)
 
     chat_messages = conversation.messages.select_related('sender').order_by('created_at')
     conversation.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+    Notification.objects.filter(
+        recipient=request.user,
+        notification_type='new_message',
+        conversation=conversation,
+        is_read=False,
+    ).update(is_read=True)
 
     return render(request, 'accounts/chat.html', {
         'other_user': other_user,

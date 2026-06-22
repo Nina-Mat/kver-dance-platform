@@ -8,6 +8,12 @@
         <span class="avatar-letter avatar-letter--icon"><i class="bi bi-incognito"></i></span>
     </div>
 </div>
+{% elif author_deleted %}
+<div class="comment-avatar-wrap">
+    <div class="avatar-nav avatar-circle avatar-circle--deleted">
+        <span class="avatar-letter">{{ author_display_name|default:"?"|first|upper }}</span>
+    </div>
+</div>
 {% else %}
 {% with shape=comment_user.comment_avatar_shape %}
 {% if shape == 'triangle' %}

@@ -1,6 +1,7 @@
 {% comment %}
-Общий контент вкладки «Настройки» профиля.
+Общий контент вкладки «Настройки» профиля — только для владельца.
 {% endcomment %}
+{% if is_owner %}
 {% include 'accounts/includes/monetization_settings.html' %}
 
 <h6 class="profile-section-title">Управление профилем</h6>
@@ -30,4 +31,18 @@
         <span>Уведомления</span>
         <i class="bi bi-lock"></i>
     </span>
+    {% if profile_user %}
+    <a href="{% url 'accounts:delete_account' profile_user.pk %}" class="settings-item settings-item--danger">
+        <i class="bi bi-trash"></i>
+        <span>Удалить аккаунт</span>
+        <i class="bi bi-chevron-right"></i>
+    </a>
+    {% elif team %}
+    <a href="{% url 'accounts:delete_account' team.leader.pk %}" class="settings-item settings-item--danger">
+        <i class="bi bi-trash"></i>
+        <span>Удалить аккаунт</span>
+        <i class="bi bi-chevron-right"></i>
+    </a>
+    {% endif %}
 </div>
+{% endif %}

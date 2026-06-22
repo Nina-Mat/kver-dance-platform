@@ -3,18 +3,25 @@
     <div class="comment-item__avatar">
         {% if comment.is_anonymous %}
         {% include 'media_app/includes/comment_avatar.html' with is_anonymous=True %}
-        {% else %}
+        {% elif comment.user %}
         {% include 'media_app/includes/comment_avatar.html' with comment_user=comment.user is_anonymous=False %}
+        {% else %}
+        {% include 'media_app/includes/comment_avatar.html' with author_deleted=True author_display_name=comment.author_display_name %}
         {% endif %}
     </div>
     <div class="comment-item__content">
         <div class="comment-item__author">
             {% if comment.is_anonymous %}
             Аноним
+            {% elif comment.user %}
+            <a href="{% url 'accounts:profile' comment.user.pk %}">@{{ comment.user.public_username }}</a>
             {% else %}
-            <a href="{% url 'accounts:profile' comment.user.pk %}">
-                {{ comment.user.nickname|default:comment.user.username }}
-            </a>
+            <button type="button"
+                    class="comment-item__author-deleted"
+                    data-bs-toggle="modal"
+                    data-bs-target="#deletedProfileModal">
+                @{{ comment.author_display_name|default:"Пользователь" }}
+            </button>
             {% endif %}
         </div>
         <div class="comment-item__text">{{ comment.text|linkify_mentions }}</div>

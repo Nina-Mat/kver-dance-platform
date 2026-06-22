@@ -31,11 +31,22 @@
         return false;
     }
 
-    function showPolicyModal() {
+    var FALLBACK_POLICY_MESSAGE =
+        'Нарушение политики платформы в связи с попыткой использования нецензурной лексики.';
+
+    function showPolicyModal(message) {
         var modalEl = document.getElementById('moderationPolicyModal');
+        var bodyEl = document.getElementById('moderationPolicyModalBody');
+        var text = (message || '').trim()
+            || (modalEl && modalEl.dataset.defaultMessage)
+            || FALLBACK_POLICY_MESSAGE;
+
         if (!modalEl || typeof bootstrap === 'undefined') {
-            window.alert('Нарушение политики платформы в связи с попыткой использования нецензурной лексики.');
+            window.alert(text);
             return;
+        }
+        if (bodyEl) {
+            bodyEl.textContent = text;
         }
         bootstrap.Modal.getOrCreateInstance(modalEl).show();
     }
@@ -71,9 +82,10 @@
         var stopWords = readStopWords();
         attachModeratedForms(stopWords);
 
-        document.querySelectorAll('.alert.moderation').forEach(function () {
-            showPolicyModal();
-        });
+        var moderationMessage = document.getElementById('kver-moderation-message');
+        if (moderationMessage) {
+            showPolicyModal(moderationMessage.textContent);
+        }
     });
 
     window.KverModeration = {

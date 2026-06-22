@@ -43,12 +43,14 @@
                     <div class="d-flex gap-3 align-items-center text-muted small flex-wrap">
                         <span><i class="bi bi-eye"></i> {{ card.views_kver }}</span>
                         {% if user.is_authenticated %}
-                        <form method="post" action="{% url 'accounts:photocard_toggle_like' card.pk %}" class="d-inline m-0">
+                        <form method="post" action="{% url 'accounts:photocard_toggle_like' card.pk %}" class="post-card__like-form">
                             {% csrf_token %}
                             <button type="submit"
                                     class="cover-like-btn{% if user_liked %} cover-like-btn--active{% endif %} kver-action-tooltip"
-                                    title="Поставить или убрать лайк">
-                                <i class="bi bi-heart{% if user_liked %}-fill{% endif %}"></i> {{ likes_count }}
+                                    title="Поставить или убрать лайк"
+                                    aria-pressed="{% if user_liked %}true{% else %}false{% endif %}">
+                                <i class="bi bi-heart{% if user_liked %}-fill{% endif %}" aria-hidden="true"></i>
+                                <span class="cover-like-btn__count">{{ likes_count }}</span>
                             </button>
                         </form>
                         {% else %}
