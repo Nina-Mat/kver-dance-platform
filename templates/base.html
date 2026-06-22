@@ -396,12 +396,6 @@
                 <div class="search-dropdown" id="globalSearchDropdown" role="listbox"></div>
             </div>
             {% if user.is_authenticated %}
-            <a href="{% url 'accounts:messenger' %}" class="header-messenger-link" title="Сообщения">
-                <i class="bi bi-chat-dots"></i>
-                {% if unread_messages_count %}
-                <span class="bell-badge">{{ unread_messages_count }}</span>
-                {% endif %}
-            </a>
             <div class="dropdown bell-wrap">
                 <a href="#" class="bell-icon dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Уведомления">
                     <i class="bi bi-bell"></i>
