@@ -26,6 +26,8 @@ def parse_youtube_url(url):
         return None
     patterns = [
         r'(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)',
+        r'youtube\.com\/shorts\/([^&\n?#]+)',
+        r'youtube\.com\/live\/([^&\n?#]+)',
     ]
     for pattern in patterns:
         match = re.search(pattern, url)
@@ -57,41 +59,71 @@ def get_youtube_fallback_thumbnail(video_id):
     return f'https://img.youtube.com/vi/{video_id}/hqdefault.jpg'
 
 
-def fetch_youtube_metadata(video_id):
-    """Получает метаданные видео через YouTube Data API v3."""
-    api_key = getattr(settings, 'YOUTUBE_API_KEY', '')
-    if not api_key or 'ТВОЙ_КЛЮЧ' in api_key:
-        return {
-            'title': '',
-            'description': '',
-            'thumbnail_url': get_youtube_fallback_thumbnail(video_id),
-            'duration': '',
-            'youtube_views': 0,
-            'youtube_likes': 0,
-        }
+def fetch_youtube_oembed(video_id):
+    """Метаданные через публичный oEmbed (без API-ключа)."""
+    import json
+    import urllib.error
+    import urllib.parse
+    import urllib.request
 
+    watch_url = f'https://www.youtube.com/watch?v={video_id}'
+    oembed_url = (
+        'https://www.youtube.com/oembed?'
+        f'url={urllib.parse.quote(watch_url, safe="")}&format=json'
+    )
     try:
-        from googleapiclient.discovery import build
-
-        youtube = build('youtube', 'v3', developerKey=api_key)
-        request = youtube.videos().list(
-            part='snippet,contentDetails,statistics',
-            id=video_id,
-        )
-        response = request.execute()
-
-        if response.get('items'):
-            item = response['items'][0]
+        with urllib.request.urlopen(oembed_url, timeout=10) as response:
+            data = json.loads(response.read().decode('utf-8'))
             return {
-                'title': item['snippet']['title'],
-                'description': item['snippet']['description'],
-                'thumbnail_url': item['snippet']['thumbnails']['high']['url'],
-                'duration': format_youtube_duration(item['contentDetails']['duration']),
-                'youtube_views': int(item['statistics'].get('viewCount', 0)),
-                'youtube_likes': int(item['statistics'].get('likeCount', 0)),
+                'title': data.get('title', ''),
+                'description': '',
+                'thumbnail_url': data.get('thumbnail_url') or get_youtube_fallback_thumbnail(video_id),
+                'duration': '',
+                'youtube_views': 0,
+                'youtube_likes': 0,
             }
-    except Exception as exc:
-        logger.warning('YouTube API error for %s: %s', video_id, exc)
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError) as exc:
+        logger.warning('YouTube oEmbed error for %s: %s', video_id, exc)
+        return None
+
+
+def fetch_youtube_metadata(video_id):
+    """Получает метаданные видео через YouTube Data API v3 или oEmbed."""
+    api_key = getattr(settings, 'YOUTUBE_API_KEY', '')
+    if api_key and 'ТВОЙ_КЛЮЧ' not in api_key:
+        try:
+            from googleapiclient.discovery import build
+
+            youtube = build('youtube', 'v3', developerKey=api_key)
+            request = youtube.videos().list(
+                part='snippet,contentDetails,statistics',
+                id=video_id,
+            )
+            response = request.execute()
+
+            if response.get('items'):
+                item = response['items'][0]
+                thumbnails = item['snippet'].get('thumbnails', {})
+                thumb = (
+                    thumbnails.get('high')
+                    or thumbnails.get('medium')
+                    or thumbnails.get('default')
+                    or {}
+                )
+                return {
+                    'title': item['snippet']['title'],
+                    'description': item['snippet']['description'],
+                    'thumbnail_url': thumb.get('url') or get_youtube_fallback_thumbnail(video_id),
+                    'duration': format_youtube_duration(item['contentDetails']['duration']),
+                    'youtube_views': int(item['statistics'].get('viewCount', 0)),
+                    'youtube_likes': int(item['statistics'].get('likeCount', 0)),
+                }
+        except Exception as exc:
+            logger.warning('YouTube API error for %s: %s', video_id, exc)
+
+    oembed_data = fetch_youtube_oembed(video_id)
+    if oembed_data:
+        return oembed_data
 
     return {
         'title': '',

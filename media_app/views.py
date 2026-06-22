@@ -40,14 +40,16 @@ def _save_cover_from_form(form, instance):
 
         metadata = fetch_youtube_metadata(video_id)
         if metadata:
-            if not instance.title:
-                instance.title = metadata['title'] or instance.title
-            instance.thumbnail_url = metadata['thumbnail_url']
-            if not instance.description:
+            if not (instance.title or '').strip():
+                instance.title = metadata.get('title') or f'YouTube {video_id}'
+            instance.thumbnail_url = metadata.get('thumbnail_url') or instance.thumbnail_url
+            if not (instance.description or '').strip() and metadata.get('description'):
                 instance.description = metadata['description']
-            instance.duration = metadata['duration']
-            instance.youtube_views = metadata['youtube_views']
-            instance.youtube_likes = metadata['youtube_likes']
+            instance.duration = metadata.get('duration') or instance.duration
+            instance.youtube_views = metadata.get('youtube_views') or 0
+            instance.youtube_likes = metadata.get('youtube_likes') or 0
+        if not (instance.title or '').strip():
+            instance.title = f'YouTube {video_id}'
     else:
         instance.source_type = 'upload'
         instance.youtube_id = ''
@@ -80,7 +82,21 @@ class CoverMediaCreateView(LoginRequiredMixin, CreateView):
             self.object.tags,
         )
         self.object.mentioned_users.set(mentioned_users)
+        messages.success(self.request, 'Публикация добавлена в ленту.')
         return response
+
+    def form_invalid(self, form):
+        for error in form.non_field_errors():
+            tags = 'moderation error' if str(error) == MODERATION_POLICY_MESSAGE else 'error'
+            messages.error(self.request, error, extra_tags=tags)
+        for field_name, errors in form.errors.items():
+            if field_name == '__all__':
+                continue
+            for error in errors:
+                label = form.fields.get(field_name).label if field_name in form.fields else field_name
+                tags = 'moderation error' if str(error) == MODERATION_POLICY_MESSAGE else 'error'
+                messages.error(self.request, f'{label}: {error}', extra_tags=tags)
+        return super().form_invalid(form)
 
 
 class CoverMediaUpdateView(LoginRequiredMixin, UpdateView):

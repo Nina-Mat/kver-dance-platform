@@ -1,11 +1,27 @@
+{% comment %}
+Аватар в комментарии: форма по типу профиля (solo — ромб, team — hex, specialist — triangle).
+Аноним и администрация KVER — круг.
+{% endcomment %}
 {% if is_anonymous %}
-<div class="comment-avatar comment-avatar--anon" title="Аноним">
-    <i class="bi bi-incognito"></i>
+<div class="comment-avatar-wrap">
+    <div class="avatar-nav avatar-circle avatar-circle--anon">
+        <span class="avatar-letter avatar-letter--icon"><i class="bi bi-incognito"></i></span>
+    </div>
 </div>
-{% elif comment_user.profile.photo %}
-<img src="{{ comment_user.profile.photo.url }}" alt="" class="comment-avatar">
-{% elif comment_user.photo %}
-<img src="{{ comment_user.photo.url }}" alt="" class="comment-avatar">
 {% else %}
-<div class="comment-avatar comment-avatar--letter">{{ comment_user.username|first|upper }}</div>
+{% with shape=comment_user.comment_avatar_shape %}
+{% if shape == 'triangle' %}
+<div class="comment-avatar-wrap comment-avatar-wrap--triangle">
+{% else %}
+<div class="comment-avatar-wrap">
+{% endif %}
+    <div class="avatar-nav avatar-{{ shape }}">
+        {% if comment_user.navbar_photo_url %}
+        <img src="{{ comment_user.navbar_photo_url }}" alt="">
+        {% else %}
+        <span class="avatar-letter">{{ comment_user.username|first|upper }}</span>
+        {% endif %}
+    </div>
+</div>
+{% endwith %}
 {% endif %}

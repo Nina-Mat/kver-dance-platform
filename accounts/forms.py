@@ -713,8 +713,8 @@ class PhotoCardCommentForm(forms.ModelForm):
         widgets = {
             'text': forms.Textarea(attrs={
                 **BOOTSTRAP_TEXTAREA,
-                'placeholder': 'Напишите комментарий...',
-                'rows': 2,
+                'placeholder': 'Ваш комментарий...',
+                'rows': 1,
                 'class': 'form-control comment-compose__input',
             }),
             'is_anonymous': forms.CheckboxInput(attrs={

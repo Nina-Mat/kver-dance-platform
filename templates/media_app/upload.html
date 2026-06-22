@@ -1,299 +1,266 @@
 {% extends 'base.html' %}
 
-
-
-{% block title %}Новая публикация — KVER{% endblock %}
-
-
+{% block title %}{% if is_edit %}Редактирование{% else %}Новая публикация{% endif %} — KVER{% endblock %}
 
 {% block extra_css %}
-
 <style>
-
-    .source-block { display: none; }
-
-    .source-block.active { display: block; }
-
-    .youtube-preview {
-
-        border: 1px solid rgba(139, 92, 246, 0.3);
-
-        border-radius: 12px;
-
-        overflow: hidden;
-
-        background: rgba(15, 23, 42, 0.6);
-
+    .pub-type-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
     }
-
-    .youtube-preview img { width: 100%; max-height: 220px; object-fit: cover; }
-
+    .pub-type-tab {
+        flex: 1;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.03);
+        color: var(--text-muted);
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        text-align: left;
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .pub-type-tab strong {
+        display: block;
+        color: var(--text-main);
+        font-size: 0.95rem;
+        margin-bottom: 0.2rem;
+    }
+    .pub-type-tab small {
+        font-size: 0.78rem;
+        line-height: 1.35;
+    }
+    .pub-type-tab.active {
+        border-color: rgba(139, 92, 246, 0.55);
+        background: rgba(139, 92, 246, 0.12);
+        color: var(--text-main);
+    }
+    .source-block { display: none; }
+    .source-block.active { display: block; }
+    .yt-link-card {
+        border-left: 3px solid #22c55e;
+        border-radius: 10px;
+        overflow: hidden;
+        background: rgba(34, 197, 94, 0.08);
+        margin-bottom: 1rem;
+    }
+    .yt-link-card__body {
+        padding: 0.75rem 0.85rem 0.65rem;
+    }
+    .yt-link-card__source {
+        color: #22c55e;
+        font-size: 0.82rem;
+        font-weight: 700;
+        margin-bottom: 0.35rem;
+    }
+    .yt-link-card__title {
+        font-weight: 700;
+        color: var(--text-main);
+        font-size: 0.92rem;
+        line-height: 1.35;
+        margin-bottom: 0.25rem;
+    }
+    .yt-link-card__desc {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+    }
+    .yt-link-card__media {
+        position: relative;
+        background: #000;
+    }
+    .yt-link-card__media img {
+        width: 100%;
+        max-height: 220px;
+        object-fit: cover;
+        display: block;
+    }
+    .yt-link-card__play {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+    .yt-link-card__play i {
+        font-size: 3rem;
+        color: #ff0000;
+        filter: drop-shadow(0 2px 8px rgba(0,0,0,0.45));
+    }
     .mention-hint { font-size: 0.85rem; color: var(--text-muted); }
-
 </style>
-
 {% endblock %}
 
-
-
 {% block content %}
-
 <div class="container">
-
     <div class="row justify-content-center">
-
         <div class="col-lg-8 col-md-10">
-
             <div class="bg-card p-4">
-
                 <h2 class="mb-1"><i class="bi bi-camera-video"></i> {% if is_edit %}Редактирование{% else %}Новая публикация{% endif %}</h2>
-
-                <p class="text-muted mb-4">{% if is_edit %}Измените данные публикации{% else %}YouTube-ссылка или локальный видеофайл{% endif %}</p>
-
-
+                <p class="text-muted mb-4">Кавер — ссылка на YouTube. Выступление — видео с вашего устройства.</p>
 
                 <form method="post" enctype="multipart/form-data" id="uploadForm"
                       data-moderated-form data-moderated-fields="title,description,tags">
-
                     {% csrf_token %}
 
-
-
                     {% if form.non_field_errors %}
-
                     <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-
                     {% endif %}
 
+                    {{ form.feed_type }}
 
+                    {% if not is_edit %}
+                    <div class="pub-type-tabs" role="tablist">
+                        <button type="button" class="pub-type-tab active" data-source="youtube">
+                            <strong><i class="bi bi-youtube"></i> Кавер</strong>
+                            <small>Танцевальное видео уже на YouTube — вставьте ссылку</small>
+                        </button>
+                        <button type="button" class="pub-type-tab" data-source="upload">
+                            <strong><i class="bi bi-camera-reels"></i> Выступление</strong>
+                            <small>Загрузите видео, подпись и отметки участников</small>
+                        </button>
+                    </div>
+                    {% endif %}
 
-                    <h5 class="profile-section-title mb-3">Тип публикации</h5>
-
-                    <div class="d-flex flex-wrap gap-3 mb-3">
-
-                        {% for radio in form.source_type %}
-
-                        <div class="form-check">
-
-                            {{ radio.tag }}
-
-                            <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}
-                            {% if radio.data.value == 'youtube' %}{% include 'core/includes/action_tooltip_hint.html' with text="Вставьте ссылку на ролик — он появится в ленте как кавер" %}{% elif radio.data.value == 'upload' %}{% include 'core/includes/action_tooltip_hint.html' with text="Загрузите видеофайл с устройства — выступление или локальный кавер" %}{% endif %}
-                            </label>
-
-                        </div>
-
-                        {% endfor %}
-
+                    <div class="d-none">
+                        {% for radio in form.source_type %}{{ radio.tag }}{% endfor %}
                     </div>
 
-
-
-                    <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
-
-
-
-                    <div id="youtubeBlock" class="source-block">
-
-                        <h5 class="profile-section-title mb-3">YouTube</h5>
-
+                    <div id="youtubeBlock" class="source-block active">
+                        <h5 class="profile-section-title mb-3">Ссылка на YouTube</h5>
                         {% include 'accounts/includes/form_field.html' with field=form.youtube_url %}
-
-                        <div id="youtubePreview" class="youtube-preview mb-3" style="display: none;">
-
-                            <img id="youtubePreviewImg" src="" alt="Превью">
-
-                            <div class="p-3">
-
-                                <strong id="youtubePreviewTitle" class="d-block mb-1"></strong>
-
-                                <small id="youtubePreviewMeta" class="text-muted"></small>
-
+                        <div id="youtubePreview" class="yt-link-card" style="display: none;">
+                            <div class="yt-link-card__body">
+                                <div class="yt-link-card__source">YouTube</div>
+                                <div id="youtubePreviewTitle" class="yt-link-card__title"></div>
+                                <div id="youtubePreviewDesc" class="yt-link-card__desc"></div>
                             </div>
-
+                            <div class="yt-link-card__media">
+                                <img id="youtubePreviewImg" src="" alt="Превью">
+                                <div class="yt-link-card__play"><i class="bi bi-youtube"></i></div>
+                            </div>
                         </div>
-
+                        <p class="text-muted small mb-0">Название и описание подтянутся из YouTube автоматически. При необходимости отредактируйте ниже.</p>
                     </div>
-
-
 
                     <div id="uploadBlock" class="source-block">
-
-                        <h5 class="profile-section-title mb-3">Локальный файл</h5>
-
+                        <h5 class="profile-section-title mb-3">Видео выступления</h5>
                         {% include 'accounts/includes/form_field.html' with field=form.video_file %}
-
-                        {% include 'accounts/includes/form_field.html' with field=form.cover_image tooltip_text="Превью для карточки в ленте — необязательно, можно оставить пустым" %}
-
+                        {% include 'accounts/includes/form_field.html' with field=form.cover_image tooltip_text="Превью для карточки в ленте — необязательно" %}
                     </div>
-
-
 
                     <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
 
-
-
-                    <h5 class="profile-section-title mb-3">Информация</h5>
-
-                    {% include 'accounts/includes/form_field.html' with field=form.title %}
-
+                    <h5 class="profile-section-title mb-3">Подпись к публикации</h5>
+                    {% include 'accounts/includes/form_field.html' with field=form.title tooltip_text="Для кавера заполнится из YouTube; для выступления укажите сами" %}
                     {% include 'accounts/includes/form_field.html' with field=form.description %}
-
-                    <p class="mention-hint mb-3"><i class="bi bi-at"></i> Упомяните участников через @username — публикация появится в их профиле.</p>
-
+                    <p class="mention-hint mb-3"><i class="bi bi-at"></i> Отметьте участников через @username в описании или тегах.</p>
                     {% include 'accounts/includes/form_field.html' with field=form.tags %}
-
-                    {% include 'accounts/includes/form_field.html' with field=form.team tooltip_text="Привязать публикацию к команде — она появится в профиле команды" %}
-
-
+                    {% include 'accounts/includes/form_field.html' with field=form.team tooltip_text="Привязать к команде — появится в профиле команды" %}
 
                     <button type="submit" class="btn btn-neon w-100 mt-2">{% if is_edit %}Сохранить{% else %}Опубликовать{% endif %}</button>
-
                 </form>
-
             </div>
-
         </div>
-
     </div>
-
 </div>
-
 {% endblock %}
-
-
 
 {% block extra_js %}
-
 <script>
-
 (function () {
-
     var previewTimer = null;
-
     var previewUrl = "{% url 'media_app:youtube_preview' %}";
 
-
+    function truncateText(text, maxLen) {
+        if (!text) return '';
+        text = text.replace(/\s+/g, ' ').trim();
+        if (text.length <= maxLen) return text;
+        return text.slice(0, maxLen).trim() + '…';
+    }
 
     function getSelectedSource() {
-
         var checked = document.querySelector('input[name="source_type"]:checked');
-
-        return checked ? checked.value : 'upload';
-
+        return checked ? checked.value : 'youtube';
     }
 
-
-
-    function toggleSourceBlocks() {
-
-        var source = getSelectedSource();
-
+    function setSource(source) {
+        document.querySelectorAll('input[name="source_type"]').forEach(function (el) {
+            el.checked = (el.value === source);
+        });
+        var feedType = document.getElementById('id_feed_type');
+        if (feedType) {
+            feedType.value = source === 'youtube' ? 'cover' : 'performance';
+        }
+        document.querySelectorAll('.pub-type-tab').forEach(function (tab) {
+            tab.classList.toggle('active', tab.dataset.source === source);
+        });
         document.getElementById('youtubeBlock').classList.toggle('active', source === 'youtube');
-
         document.getElementById('uploadBlock').classList.toggle('active', source === 'upload');
-
+        if (source === 'youtube') {
+            loadYoutubePreview();
+        }
     }
-
-
 
     function loadYoutubePreview() {
-
         var input = document.getElementById('id_youtube_url');
-
         var preview = document.getElementById('youtubePreview');
-
         if (!input || getSelectedSource() !== 'youtube') return;
 
-
-
         var url = input.value.trim();
-
         if (!url) {
-
             preview.style.display = 'none';
-
             return;
-
         }
 
-
-
         clearTimeout(previewTimer);
-
         previewTimer = setTimeout(function () {
-
             fetch(previewUrl + '?url=' + encodeURIComponent(url))
-
                 .then(function (response) { return response.json(); })
-
                 .then(function (data) {
-
                     if (data.error) {
-
                         preview.style.display = 'none';
-
                         return;
-
                     }
-
                     document.getElementById('youtubePreviewImg').src = data.thumbnail_url;
-
                     document.getElementById('youtubePreviewTitle').textContent = data.title || 'YouTube видео';
-
-                    document.getElementById('youtubePreviewMeta').textContent =
-
-                        (data.duration ? data.duration + ' · ' : '') +
-
-                        (data.youtube_views ? data.youtube_views + ' просмотров' : '');
-
+                    document.getElementById('youtubePreviewDesc').textContent = truncateText(data.description, 160);
                     preview.style.display = 'block';
 
-
-
                     var titleInput = document.getElementById('id_title');
-
+                    var descInput = document.getElementById('id_description');
                     if (titleInput && !titleInput.value && data.title) {
-
                         titleInput.value = data.title;
-
                     }
-
+                    if (descInput && !descInput.value && data.description) {
+                        descInput.value = data.description;
+                    }
                 })
-
                 .catch(function () { preview.style.display = 'none'; });
-
         }, 500);
-
     }
 
-
-
-    document.querySelectorAll('input[name="source_type"]').forEach(function (el) {
-
-        el.addEventListener('change', toggleSourceBlocks);
-
+    document.querySelectorAll('.pub-type-tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            setSource(tab.dataset.source);
+        });
     });
 
-
-
     var youtubeInput = document.getElementById('id_youtube_url');
-
     if (youtubeInput) {
-
         youtubeInput.addEventListener('input', loadYoutubePreview);
-
     }
 
-
-
-    toggleSourceBlocks();
-
-    loadYoutubePreview();
-
+    {% if is_edit %}
+    setSource(getSelectedSource());
+    {% else %}
+    setSource('youtube');
+    {% endif %}
 })();
-
 </script>
-
 {% endblock %}
-

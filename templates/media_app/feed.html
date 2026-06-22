@@ -11,8 +11,8 @@
 
     {% if covers %}
         {% for cover in covers %}
-        <div class="bg-card p-3 mb-3" style="border-radius: 12px;">
-            {% include 'media_app/includes/cover_card.html' with cover=cover compact=True %}
+        <div class="post-card-shell bg-card mb-3" style="border-radius: 12px; overflow: hidden;">
+            {% include 'media_app/includes/cover_card.html' with cover=cover in_feed=True compact=True %}
         </div>
         {% endfor %}
 

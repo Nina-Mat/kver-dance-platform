@@ -1,76 +1,152 @@
-{% extends 'base.html' %}
-
-{% block title %}Помощь — KVER{% endblock %}
-
-{% block content %}
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-9">
-            <h2 class="mb-4"><i class="bi bi-question-circle"></i> Помощь</h2>
-
-            <div class="bg-card p-4 rounded mb-4">
-                <h5 class="text-light mb-3"><i class="bi bi-chat-left-text"></i> Частые вопросы</h5>
-                <div class="accordion accordion-flush help-faq" id="helpFaq">
-                    {% for item in faq_items %}
-                    <div class="accordion-item bg-transparent border-secondary">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed bg-transparent text-light shadow-none"
-                                    type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#faq-{{ forloop.counter }}">
-                                {{ item.question }}
-                            </button>
-                        </h2>
-                        <div id="faq-{{ forloop.counter }}" class="accordion-collapse collapse"
-                             data-bs-parent="#helpFaq">
-                            <div class="accordion-body text-secondary">{{ item.answer }}</div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <div class="bg-card p-4 rounded mb-4">
-                <h5 class="text-light mb-3"><i class="bi bi-shield-check"></i> Правила сообщества</h5>
-                <ul class="text-secondary mb-0" style="line-height: 1.8;">
-                    {% for rule in community_rules %}
-                    <li>{{ rule }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-
-            <div class="bg-card p-4 rounded text-center">
-                <h5 class="text-light mb-2"><i class="bi bi-headset"></i> Нужна помощь?</h5>
-                <p class="text-secondary mb-4">
-                    Напишите администрации KVER о технических проблемах, жалобах на контент или вопросах по платформе.
-                </p>
-                {% if kver_admin_user %}
-                    {% if user.is_authenticated %}
-                    <a href="{{ admin_chat_url }}" class="btn btn-neon me-2 mb-2">
-                        <i class="bi bi-envelope"></i> Связаться с администратором
-                    </a>
-                    <a href="{% url 'accounts:profile' kver_admin_user.pk %}" class="btn btn-outline-neon mb-2">
-                        <i class="bi bi-shield-check"></i> Профиль администрации
-                    </a>
-                    {% else %}
-                    <a href="{% url 'accounts:login' %}?next={{ admin_chat_url|urlencode }}" class="btn btn-neon mb-2">
-                        <i class="bi bi-box-arrow-in-right"></i> Войти и написать администратору
-                    </a>
-                    {% endif %}
-                {% else %}
-                <p class="text-muted small mb-0">Аккаунт администрации пока не настроен. Создайте суперпользователя через Django admin.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-.help-faq .accordion-button:not(.collapsed) {
-    color: var(--accent-purple);
-    background: rgba(139, 92, 246, 0.08);
-}
-.help-faq .accordion-button::after {
-    filter: invert(1);
-}
-</style>
-{% endblock %}
+{% extends 'base.html' %}
+
+
+
+{% block title %}Помощь — KVER{% endblock %}
+
+
+
+{% block content %}
+
+<div class="container py-4">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-9">
+
+            <h2 class="mb-4"><i class="bi bi-question-circle"></i> Помощь</h2>
+
+
+
+            <div class="bg-card p-4 rounded mb-4">
+
+                <h5 class="text-light mb-3"><i class="bi bi-chat-left-text"></i> Частые вопросы</h5>
+
+                <div class="accordion accordion-flush help-faq" id="helpFaq">
+
+                    {% for item in faq_items %}
+
+                    <div class="accordion-item bg-transparent border-secondary">
+
+                        <h2 class="accordion-header">
+
+                            <button class="accordion-button collapsed bg-transparent text-light shadow-none"
+
+                                    type="button" data-bs-toggle="collapse"
+
+                                    data-bs-target="#faq-{{ forloop.counter }}">
+
+                                {{ item.question }}
+
+                            </button>
+
+                        </h2>
+
+                        <div id="faq-{{ forloop.counter }}" class="accordion-collapse collapse"
+
+                             data-bs-parent="#helpFaq">
+
+                            <div class="accordion-body text-secondary">{{ item.answer }}</div>
+
+                        </div>
+
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+
+
+            <div class="bg-card p-4 rounded mb-4">
+
+                <h5 class="text-light mb-3"><i class="bi bi-shield-check"></i> Правила сообщества</h5>
+
+                <ul class="text-secondary mb-0" style="line-height: 1.8;">
+
+                    {% for rule in community_rules %}
+
+                    <li>{{ rule }}</li>
+
+                    {% endfor %}
+
+                </ul>
+
+            </div>
+
+
+
+            <div class="bg-card p-4 rounded text-center">
+
+                <h5 class="text-light mb-2"><i class="bi bi-headset"></i> Нужна помощь?</h5>
+
+                <p class="text-secondary mb-4">
+
+                    Напишите администрации KVER о технических проблемах, жалобах на контент или вопросах по платформе.
+
+                </p>
+
+                {% if kver_admin_user %}
+
+                    {% if user.is_authenticated %}
+
+                    <a href="{{ admin_chat_url }}" class="btn btn-neon me-2 mb-2">
+
+                        <i class="bi bi-envelope"></i> Связаться с администратором
+
+                    </a>
+
+                    <a href="{% url 'accounts:profile' kver_admin_user.pk %}" class="btn btn-outline-neon mb-2">
+
+                        <i class="bi bi-shield-check"></i> Профиль администрации
+
+                    </a>
+
+                    {% else %}
+
+                    <a href="{% url 'accounts:login' %}?next={{ admin_chat_url|urlencode }}" class="btn btn-neon mb-2">
+
+                        <i class="bi bi-box-arrow-in-right"></i> Войти и написать администратору
+
+                    </a>
+
+                    {% endif %}
+
+                {% else %}
+
+                <p class="text-muted small mb-0">Аккаунт администрации пока не настроен. Создайте суперпользователя через Django admin.</p>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<style>
+
+.help-faq .accordion-button:not(.collapsed) {
+
+    color: var(--accent-purple);
+
+    background: rgba(139, 92, 246, 0.08);
+
+}
+
+.help-faq .accordion-button::after {
+
+    filter: invert(1);
+
+}
+
+</style>
+
+{% endblock %}
+

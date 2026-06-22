@@ -1,0 +1,21 @@
+{% load media_extras %}
+<form method="post" action="{{ compose_action }}" class="comment-compose"
+      data-moderated-form data-moderated-fields="text">
+    {% csrf_token %}
+    <div class="comment-compose__avatar">
+        {% include 'media_app/includes/comment_avatar.html' with comment_user=user is_anonymous=False %}
+    </div>
+    <div class="comment-compose__main">
+        <div class="comment-compose__bar">
+            {{ comment_form.text }}
+            <button type="submit" class="comment-compose__send kver-action-tooltip" title="Отправить комментарий">
+                <i class="bi bi-send-fill"></i>
+            </button>
+        </div>
+        <label class="comment-compose__anon-label kver-action-tooltip"
+               title="Ваш ник не будет виден другим пользователям">
+            {{ comment_form.is_anonymous }}
+            <span>Анонимно</span>
+        </label>
+    </div>
+</form>

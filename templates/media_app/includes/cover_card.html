@@ -1,31 +1,46 @@
 {% load media_extras %}
 
-<div class="cover-card mb-4">
-    <div class="d-flex align-items-center gap-2 mb-3">
-        <a href="{% url 'accounts:profile' cover.author.pk %}" class="text-decoration-none d-flex align-items-center gap-2">
-            <span class="text-light">{{ cover.author.username }}</span>
+<article class="post-card{% if in_feed %} post-card--feed{% endif %}">
+    <header class="post-card__header">
+        <a href="{% url 'accounts:profile' cover.author.pk %}" class="post-card__author">
+            <div class="post-card__avatar">
+                {% include 'media_app/includes/comment_avatar.html' with comment_user=cover.author is_anonymous=False %}
+            </div>
+            <div class="post-card__author-info">
+                <span class="post-card__author-name">{{ cover.author.nickname|default:cover.author.username }}</span>
+                <span class="post-card__author-meta">
+                    {% if post_type_label %}{{ post_type_label }}{% elif cover.feed_type == 'performance' %}Выступление{% else %}Кавер{% endif %}
+                    {% if cover.source_type == 'youtube' %} · YouTube{% endif %}
+                    {% if boosted %} · <span class="post-card__boost">Подписка</span>{% endif %}
+                </span>
+            </div>
         </a>
-        <small class="text-muted">{{ cover.created_at|timesince }} назад</small>
-        {% if cover.source_type == 'youtube' %}
-        <span class="stat-badge ms-auto kver-action-tooltip" title="Открыть видео на YouTube">YouTube</span>
-        {% else %}
-        <a href="{% url 'media_app:detail' cover.pk %}" class="stat-badge ms-auto text-decoration-none">Видео</a>
-        {% endif %}
-    </div>
+    </header>
 
     {% if cover.source_type == 'youtube' and cover.youtube_id %}
-    <a href="https://www.youtube.com/watch?v={{ cover.youtube_id }}" target="_blank" rel="noopener" class="text-decoration-none d-block mb-3">
-        <div class="position-relative cover-card-media">
-            {% if cover.thumbnail_url %}
-            <img src="{{ cover.thumbnail_url }}" alt="{{ cover.title }}" class="w-100">
-            {% else %}
-            <div class="cover-card-placeholder"><i class="bi bi-play-circle"></i></div>
-            {% endif %}
-            <div class="cover-card-play"><i class="bi bi-play-circle-fill"></i></div>
-        </div>
-    </a>
+    <div class="post-card__media">
+        <a href="https://www.youtube.com/watch?v={{ cover.youtube_id }}" target="_blank" rel="noopener" class="text-decoration-none d-block yt-link-card yt-link-card--feed">
+            <div class="yt-link-card__body">
+                <div class="yt-link-card__source">YouTube</div>
+                {% if cover.title %}
+                <div class="yt-link-card__title">{{ cover.title }}</div>
+                {% endif %}
+                {% if cover.description %}
+                <div class="yt-link-card__desc">{{ cover.description|truncatechars:160 }}</div>
+                {% endif %}
+            </div>
+            <div class="position-relative cover-card-media yt-link-card__media">
+                {% if cover.thumbnail_url %}
+                <img src="{{ cover.thumbnail_url }}" alt="{{ cover.title }}" class="w-100">
+                {% else %}
+                <div class="cover-card-placeholder"><i class="bi bi-play-circle"></i></div>
+                {% endif %}
+                <div class="cover-card-play cover-card-play--youtube"><i class="bi bi-youtube"></i></div>
+            </div>
+        </a>
+    </div>
     {% elif cover.source_type == 'upload' %}
-    <div class="mb-3">
+    <div class="post-card__media">
         <a href="{% url 'media_app:detail' cover.pk %}" class="text-decoration-none d-block">
             <div class="position-relative cover-card-media">
                 {% if cover.cover_image %}
@@ -41,59 +56,74 @@
     </div>
     {% endif %}
 
-    <h5 class="mb-2 text-light">
-        {% if compact %}
-        <a href="{% url 'media_app:detail' cover.pk %}" class="text-decoration-none text-light">{{ cover.title }}</a>
-        {% else %}
-        {{ cover.title }}
+    <div class="post-card__body">
+        {% if cover.title and cover.source_type != 'youtube' %}
+        <h3 class="post-card__title">
+            {% if compact %}
+            <a href="{% url 'media_app:detail' cover.pk %}">{{ cover.title }}</a>
+            {% else %}
+            {{ cover.title }}
+            {% endif %}
+        </h3>
+        {% elif cover.title and cover.source_type == 'youtube' and not in_feed %}
+        <h3 class="post-card__title">
+            {% if compact %}
+            <a href="{% url 'media_app:detail' cover.pk %}">{{ cover.title }}</a>
+            {% else %}
+            {{ cover.title }}
+            {% endif %}
+        </h3>
         {% endif %}
-    </h5>
 
-    {% if cover.description %}
-    <p class="text-secondary mb-2" style="line-height: 1.6;">{{ cover.description|linkify_mentions }}</p>
-    {% endif %}
-
-    {% if cover.mentioned_users.all %}
-    <div class="mb-2 d-flex flex-wrap gap-1">
-        {% for user in cover.mentioned_users.all %}
-        <a href="{% url 'accounts:profile' user.pk %}" class="btn btn-outline-neon btn-sm py-0 px-2" style="font-size: 0.75rem;">
-            @{{ user.nickname|default:user.username }}
-        </a>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    {% if cover.tags %}
-    <div class="mb-2">
-        {% for tag in cover.tags.split %}
-        <span class="stat-badge me-1">#{{ tag }}</span>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <div class="d-flex gap-3 align-items-center text-muted small flex-wrap">
-        {% if cover.source_type == 'youtube' and cover.youtube_views %}
-        <span><i class="bi bi-eye"></i> {{ cover.youtube_views }}</span>
-        {% else %}
-        <span><i class="bi bi-eye"></i> {{ cover.views_kver }}</span>
+        {% if cover.description and cover.source_type != 'youtube' %}
+        {% include 'core/includes/post_text_expand.html' with text=cover.description|linkify_mentions expand_enabled=in_feed|default:False %}
+        {% elif cover.description and cover.source_type == 'youtube' and not in_feed %}
+        {% include 'core/includes/post_text_expand.html' with text=cover.description|linkify_mentions expand_enabled=True %}
+        {% elif cover.description and cover.source_type == 'youtube' and in_feed %}
+        {# Описание уже показано в карточке превью; полный текст — на странице поста #}
         {% endif %}
-        {% if user.is_authenticated %}
-        <form method="post" action="{% url 'media_app:toggle_like' cover.pk %}" class="d-inline m-0">
-            {% csrf_token %}
-            <button type="submit"
-                    class="cover-like-btn{% if cover.pk in user_liked_cover_ids %} cover-like-btn--active{% endif %} kver-action-tooltip"
-                    title="Поставить или убрать лайк">
-                <i class="bi bi-heart{% if cover.pk in user_liked_cover_ids %}-fill{% endif %}"></i>
-                {% if likes_count is not None %}{{ likes_count }}{% else %}{{ cover.likes_kver }}{% endif %}
-            </button>
-        </form>
-        {% else %}
-        <span><i class="bi bi-heart"></i> {{ cover.likes_kver }}</span>
+
+        {% if cover.mentioned_users.all %}
+        <div class="post-card__mentions">
+            {% for user in cover.mentioned_users.all %}
+            <a href="{% url 'accounts:profile' user.pk %}">@{{ user.nickname|default:user.username }}</a>
+            {% endfor %}
+        </div>
         {% endif %}
-        {% if not compact %}
-        <a href="{% url 'media_app:detail' cover.pk %}#comments" class="text-decoration-none text-muted">
-            <i class="bi bi-chat"></i> {{ cover.comments.count }}
-        </a>
+
+        {% if cover.tags %}
+        <div class="post-card__tags">
+            {% for tag in cover.tags.split %}
+            <span class="post-card__tag">#{{ tag }}</span>
+            {% endfor %}
+        </div>
         {% endif %}
     </div>
-</div>
+
+    <footer class="post-card__footer">
+        <div class="post-card__actions">
+            {% if cover.source_type == 'youtube' and cover.youtube_views %}
+            <span class="post-card__stat"><i class="bi bi-eye"></i> {{ cover.youtube_views }}</span>
+            {% else %}
+            <span class="post-card__stat"><i class="bi bi-eye"></i> {{ cover.views_kver }}</span>
+            {% endif %}
+            {% if user.is_authenticated %}
+            <form method="post" action="{% url 'media_app:toggle_like' cover.pk %}" class="d-inline m-0">
+                {% csrf_token %}
+                <button type="submit"
+                        class="cover-like-btn{% if cover.pk in user_liked_cover_ids %} cover-like-btn--active{% endif %} kver-action-tooltip"
+                        title="Поставить или убрать лайк">
+                    <i class="bi bi-heart{% if cover.pk in user_liked_cover_ids %}-fill{% endif %}"></i>
+                    {% if likes_count is not None %}{{ likes_count }}{% else %}{{ cover.likes_kver }}{% endif %}
+                </button>
+            </form>
+            {% else %}
+            <span class="post-card__stat"><i class="bi bi-heart"></i> {{ cover.likes_kver }}</span>
+            {% endif %}
+            <a href="{% url 'media_app:detail' cover.pk %}#comments" class="post-card__stat post-card__stat--link">
+                <i class="bi bi-chat"></i> {{ cover.comments.count }}
+            </a>
+        </div>
+        <time class="post-card__time">{{ cover.created_at|timesince }} назад</time>
+    </footer>
+</article>

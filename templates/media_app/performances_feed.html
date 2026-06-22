@@ -14,9 +14,9 @@
 
     {% if performances %}
         {% for perf in performances %}
-        <div class="card bg-card border-0 mb-4">
-            <div class="card-body">
-                {% include 'media_app/includes/cover_card.html' with cover=perf %}
+        <div class="card bg-card border-0 mb-3 post-card-shell">
+            <div class="card-body p-0">
+                {% include 'media_app/includes/cover_card.html' with cover=perf in_feed=True compact=True post_type_label='Выступление' %}
             </div>
         </div>
         {% endfor %}

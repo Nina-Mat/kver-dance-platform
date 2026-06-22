@@ -5,7 +5,7 @@ from crispy_forms.layout import Submit
 
 from .models import CoverMedia, Comment
 from .moderation import find_stop_words, MODERATION_POLICY_MESSAGE
-from .utils import parse_youtube_url, validate_video_file
+from .utils import parse_youtube_url, validate_video_file, fetch_youtube_metadata
 
 BOOTSTRAP_TEXT = {'class': 'form-control'}
 BOOTSTRAP_TEXTAREA = {'class': 'form-control', 'rows': 3}
@@ -93,13 +93,19 @@ class CoverMediaForm(forms.ModelForm):
         else:
             self.fields['team'].queryset = self.fields['team'].queryset.none()
 
-        self.fields['feed_type'].widget = forms.RadioSelect(attrs={'class': 'form-check-input'})
+        self.fields['feed_type'].widget = forms.HiddenInput()
+        self.fields['title'].required = False
+
+        if not self.instance.pk:
+            self.fields['source_type'].initial = 'youtube'
+            self.fields['feed_type'].initial = 'cover'
 
     def clean(self):
         cleaned_data = super().clean()
         source_type = cleaned_data.get('source_type', 'upload')
 
         if source_type == 'youtube':
+            cleaned_data['feed_type'] = 'cover'
             youtube_url = cleaned_data.get('youtube_url') or self.data.get('youtube_url')
             if not youtube_url and self.instance.pk and self.instance.youtube_url:
                 youtube_url = self.instance.youtube_url
@@ -110,16 +116,25 @@ class CoverMediaForm(forms.ModelForm):
             if not video_id:
                 raise forms.ValidationError('Неверная ссылка на YouTube.')
 
+            metadata = fetch_youtube_metadata(video_id)
             cleaned_data['youtube_id'] = video_id
             cleaned_data['youtube_url'] = youtube_url
             self.instance.youtube_id = video_id
             self.instance.youtube_url = youtube_url
             self.instance.source_type = 'youtube'
 
+            if not (cleaned_data.get('title') or '').strip():
+                cleaned_data['title'] = metadata.get('title') or f'YouTube {video_id}'
+            if not (cleaned_data.get('description') or '').strip() and metadata.get('description'):
+                cleaned_data['description'] = metadata['description']
+
         elif source_type == 'upload':
+            cleaned_data['feed_type'] = 'performance'
             video_file = cleaned_data.get('video_file')
             if not video_file and not (self.instance.pk and self.instance.video_file):
                 raise forms.ValidationError('Загрузите видеофайл.')
+            if not (cleaned_data.get('title') or '').strip():
+                raise forms.ValidationError({'title': 'Укажите название выступления.'})
             if video_file:
                 validate_video_file(video_file)
             cleaned_data['youtube_id'] = ''
@@ -151,8 +166,8 @@ class CommentForm(forms.ModelForm):
         widgets = {
             'text': forms.Textarea(attrs={
                 **BOOTSTRAP_TEXTAREA,
-                'placeholder': 'Напишите комментарий...',
-                'rows': 2,
+                'placeholder': 'Ваш комментарий...',
+                'rows': 1,
                 'class': 'form-control comment-compose__input',
             }),
             'is_anonymous': forms.CheckboxInput(attrs={

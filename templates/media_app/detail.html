@@ -104,7 +104,9 @@
 
                 {% if cover.description %}
 
-                <p class="text-secondary mb-3" style="line-height: 1.7;">{{ cover.description|linkify_mentions }}</p>
+                <div class="mb-3">
+                {% include 'core/includes/post_text_expand.html' with text=cover.description|linkify_mentions expand_enabled=True %}
+                </div>
 
                 {% endif %}
 
@@ -112,15 +114,11 @@
 
                 {% if cover.mentioned_users.all %}
 
-                <div class="mb-3 d-flex flex-wrap gap-2">
+                <div class="post-card__mentions mb-3">
 
                     {% for user in cover.mentioned_users.all %}
 
-                    <a href="{% url 'accounts:profile' user.pk %}" class="btn btn-outline-neon btn-sm">
-
-                        @{{ user.nickname|default:user.username }}
-
-                    </a>
+                    <a href="{% url 'accounts:profile' user.pk %}">@{{ user.nickname|default:user.username }}</a>
 
                     {% endfor %}
 
@@ -145,32 +143,26 @@
                 {% endif %}
 
                 <div class="post-engagement">
-                    <div class="post-engagement__stats text-muted small">
+                    <div class="d-flex gap-3 align-items-center text-muted small flex-wrap">
                         {% if cover.source_type == 'youtube' and cover.youtube_views %}
                         <span><i class="bi bi-eye"></i> {{ cover.youtube_views }}</span>
                         {% else %}
                         <span><i class="bi bi-eye"></i> {{ cover.views_kver }}</span>
                         {% endif %}
-                        <span class="{% if user_liked %}post-engagement__stat-liked{% endif %}">
-                            <i class="bi bi-heart{% if user_liked %}-fill{% endif %}"></i> {{ likes_count }}
-                        </span>
-                        <span><i class="bi bi-chat"></i> {{ comments_count }}</span>
-                    </div>
-                    <div class="post-engagement__actions">
                         {% if user.is_authenticated %}
-                        <form method="post" action="{% url 'media_app:toggle_like' cover.pk %}" class="m-0">
+                        <form method="post" action="{% url 'media_app:toggle_like' cover.pk %}" class="d-inline m-0">
                             {% csrf_token %}
-                            <button type="submit" class="post-action-btn{% if user_liked %} post-action-btn--active{% endif %}">
-                                <i class="bi bi-heart{% if user_liked %}-fill{% endif %}"></i> Нравится
+                            <button type="submit"
+                                    class="cover-like-btn{% if user_liked %} cover-like-btn--active{% endif %} kver-action-tooltip"
+                                    title="Поставить или убрать лайк">
+                                <i class="bi bi-heart{% if user_liked %}-fill{% endif %}"></i> {{ likes_count }}
                             </button>
                         </form>
                         {% else %}
-                        <span class="post-action-btn post-action-btn--static">
-                            <i class="bi bi-heart"></i> Нравится
-                        </span>
+                        <span><i class="bi bi-heart"></i> {{ likes_count }}</span>
                         {% endif %}
-                        <a href="#comments" class="post-action-btn post-action-btn--link">
-                            <i class="bi bi-chat"></i> Комментарии
+                        <a href="#comments" class="text-decoration-none text-muted">
+                            <i class="bi bi-chat"></i> {{ comments_count }}
                         </a>
                     </div>
                 </div>
@@ -179,35 +171,17 @@
                     <h5 class="comments-section__title">Комментарии</h5>
 
                     {% if user.is_authenticated %}
-                    <form method="post" action="{% url 'media_app:comment' cover.pk %}" class="comment-compose"
-                          data-moderated-form data-moderated-fields="text">
-                        {% csrf_token %}
-                        <div class="comment-compose__avatar">
-                            {% include 'media_app/includes/comment_avatar.html' with comment_user=user is_anonymous=False %}
-                        </div>
-                        <div class="comment-compose__body">
-                            {{ comment_form.text }}
-                            <div class="comment-compose__footer">
-                                <label class="comment-compose__anon-label kver-action-tooltip"
-                                       title="Ваш ник не будет виден другим пользователям">
-                                    {{ comment_form.is_anonymous }}
-                                    <span>Опубликовать анонимно</span>
-                                </label>
-                                <button type="submit" class="btn btn-neon btn-sm comment-compose__submit">
-                                    <i class="bi bi-send"></i> Отправить
-                                </button>
-                            </div>
-                        </div>
-                    </form>
+                    {% url 'media_app:comment' cover.pk as compose_url %}
+                    {% include 'media_app/includes/comment_compose.html' with compose_action=compose_url comment_form=comment_form %}
                     {% else %}
-                    <p class="text-muted small mb-3">
+                    <p class="comments-login-hint">
                         <a href="{% url 'accounts:login' %}">Войдите</a>, чтобы оставить комментарий.
                     </p>
                     {% endif %}
 
                     <div class="comments-list">
                         {% for comment in comments %}
-                        {% include 'media_app/includes/comment_item.html' with comment=comment cover=cover %}
+                        {% include 'media_app/includes/comment_item.html' with comment=comment post_pk=cover.pk post_owner_id=cover.author_id delete_url='media_app:delete_comment' like_url='media_app:toggle_comment_like' %}
                         {% empty %}
                         <p class="comments-empty">Комментариев пока нет — будьте первым.</p>
                         {% endfor %}

@@ -274,6 +274,54 @@
             color: var(--accent-purple); text-decoration: none; font-size: 0.88rem;
         }
         .account-switcher-add:hover { background: rgba(139,92,246,0.08); color: var(--accent-pink); }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            font-size: 1.5rem;
+            padding: 0.25rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .sidebar-overlay {
+            display: none;
+        }
+
+        @media (max-width: 991px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 1040;
+            }
+
+            .sidebar.sidebar-open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+                padding: 15px;
+                padding-bottom: 80px;
+            }
+
+            .sidebar-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 1035;
+            }
+
+            body.sidebar-menu-open {
+                overflow: hidden;
+            }
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -418,12 +466,24 @@
             function closeSidebar() {
                 sidebar.classList.remove('sidebar-open');
                 if (overlay) overlay.classList.remove('show');
+                document.body.classList.remove('sidebar-menu-open');
+            }
+            function openSidebar() {
+                sidebar.classList.add('sidebar-open');
+                if (overlay) overlay.classList.add('show');
+                document.body.classList.add('sidebar-menu-open');
             }
             toggle.addEventListener('click', function () {
-                sidebar.classList.toggle('sidebar-open');
-                if (overlay) overlay.classList.toggle('show');
+                if (sidebar.classList.contains('sidebar-open')) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
             });
             if (overlay) overlay.addEventListener('click', closeSidebar);
+            sidebar.querySelectorAll('a').forEach(function (link) {
+                link.addEventListener('click', closeSidebar);
+            });
         })();
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -439,5 +499,6 @@
     {% block extra_js %}{% endblock %}
     <script src="{% static 'js/moderation.js' %}"></script>
     <script src="{% static 'js/search.js' %}"></script>
+    <script src="{% static 'js/post-expand.js' %}"></script>
 </body>
 </html>

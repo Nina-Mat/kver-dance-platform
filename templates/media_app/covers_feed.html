@@ -14,9 +14,9 @@
 
     {% if covers %}
         {% for cover in covers %}
-        <div class="card bg-card border-0 mb-4">
-            <div class="card-body">
-                {% include 'media_app/includes/cover_card.html' with cover=cover %}
+        <div class="card bg-card border-0 mb-3 post-card-shell">
+            <div class="card-body p-0">
+                {% include 'media_app/includes/cover_card.html' with cover=cover in_feed=True compact=True post_type_label='Кавер' %}
             </div>
         </div>
         {% endfor %}

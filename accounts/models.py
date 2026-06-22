@@ -120,6 +120,15 @@ class CustomUser(AbstractUser):
         }
         return shapes.get(self.user_type, 'rhombus')
 
+    @property
+    def comment_avatar_shape(self):
+        """Форма аватара в комментариях (как в профиле; администрация — круг)."""
+        from core.utils import is_kver_admin
+
+        if is_kver_admin(self):
+            return 'circle'
+        return self.navbar_avatar_shape
+
     def get_cover_gradient_style(self):
         """CSS-градиент для обложки профиля."""
         start = self.cover_gradient_start or '#EC4899'

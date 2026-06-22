@@ -1,0 +1,7 @@
+<div class="post-text{% if expand_enabled %} post-text--expandable{% endif %}"
+     {% if expand_enabled %}data-post-expand{% endif %}>
+    <div class="post-text__content{% if expand_enabled %} post-text__content--clamped{% endif %}">{{ text }}</div>
+    {% if expand_enabled %}
+    <button type="button" class="post-text__toggle" hidden>Показать ещё</button>
+    {% endif %}
+</div>
