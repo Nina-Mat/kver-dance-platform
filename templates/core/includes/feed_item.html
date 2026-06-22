@@ -8,7 +8,9 @@
         <small class="text-muted ms-auto">{{ item.obj.created_at|timesince }} назад</small>
     </div>
     <div class="feed-photo-wrap mb-2">
-        <img src="{{ item.obj.image.url }}" alt="{{ item.obj.caption|default:'Фото' }}" class="w-100 rounded">
+        <a href="{% url 'accounts:photocard_detail' item.obj.pk %}" class="text-decoration-none d-block">
+            <img src="{{ item.obj.image.url }}" alt="{{ item.obj.caption|default:'Фото' }}" class="w-100 rounded">
+        </a>
     </div>
     {% if item.obj.caption %}
     <p class="text-secondary mb-2">{{ item.obj.caption }}</p>
@@ -20,13 +22,14 @@
     </a>
     {% endif %}
     {% endwith %}
+    {% include 'accounts/includes/photo_card_engagement.html' with card=item.obj %}
 </div>
 
 {% elif item.item_type == 'cover' %}
 <div class="feed-item feed-item-cover mb-4">
     <div class="d-flex align-items-center gap-2 mb-2">
         <span class="stat-badge">Кавер</span>
-        {% if item.boosted %}<span class="stat-badge" style="background: rgba(236,72,153,0.2); color: #EC4899;">Подписка</span>{% endif %}
+        {% if item.boosted %}<span class="stat-badge kver-action-tooltip" style="background: rgba(236,72,153,0.2); color: #EC4899;" title="Пост выше в ленте, потому что вы подписаны на автора">Подписка</span>{% endif %}
     </div>
     {% include 'media_app/includes/cover_card.html' with cover=item.obj %}
 </div>
@@ -35,7 +38,7 @@
 <div class="feed-item feed-item-performance mb-4">
     <div class="d-flex align-items-center gap-2 mb-2">
         <span class="stat-badge">Выступление</span>
-        {% if item.boosted %}<span class="stat-badge" style="background: rgba(236,72,153,0.2); color: #EC4899;">Подписка</span>{% endif %}
+        {% if item.boosted %}<span class="stat-badge kver-action-tooltip" style="background: rgba(236,72,153,0.2); color: #EC4899;" title="Пост выше в ленте, потому что вы подписаны на автора">Подписка</span>{% endif %}
     </div>
     {% include 'media_app/includes/cover_card.html' with cover=item.obj %}
 </div>

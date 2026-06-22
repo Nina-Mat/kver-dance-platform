@@ -1,0 +1,19 @@
+<div class="d-flex gap-3 align-items-center text-muted small flex-wrap mt-2">
+    <span><i class="bi bi-eye"></i> {{ card.views_kver }}</span>
+    {% if user.is_authenticated %}
+    <form method="post" action="{% url 'accounts:photocard_toggle_like' card.pk %}" class="d-inline m-0">
+        {% csrf_token %}
+        <button type="submit"
+                class="cover-like-btn{% if card.pk in user_liked_photo_card_ids %} cover-like-btn--active{% endif %} kver-action-tooltip"
+                title="Поставить или убрать лайк">
+            <i class="bi bi-heart{% if card.pk in user_liked_photo_card_ids %}-fill{% endif %}"></i>
+            {{ card.likes_kver }}
+        </button>
+    </form>
+    {% else %}
+    <span><i class="bi bi-heart"></i> {{ card.likes_kver }}</span>
+    {% endif %}
+    <a href="{% url 'accounts:photocard_detail' card.pk %}#comments" class="text-decoration-none text-muted">
+        <i class="bi bi-chat"></i> {{ card.comments_count|default:0 }}
+    </a>
+</div>

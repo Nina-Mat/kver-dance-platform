@@ -9,13 +9,15 @@
             <!-- Шапка профиля -->
             <div class="profile-card">
                 <div class="profile-cover" style="background: {{ cover_style|default:'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)' }};">
-                    {% if is_owner %}
+                    {% if is_owner and not is_admin_profile %}
                     {% if profile_user %}
-                    <a href="{% url 'accounts:profile_edit' profile_user.pk %}#cover-gradient" class="profile-cover-edit" title="Изменить обложку">
+                    <a href="{% url 'accounts:profile_edit' profile_user.pk %}#cover-gradient" class="profile-cover-edit kver-action-tooltip"
+                       title="Настроить цвета градиента в шапке профиля">
                         <i class="bi bi-palette"></i> Градиент обложки
                     </a>
                     {% elif team %}
-                    <a href="{% url 'accounts:team_edit' team.pk %}#cover-gradient" class="profile-cover-edit" title="Изменить обложку">
+                    <a href="{% url 'accounts:team_edit' team.pk %}#cover-gradient" class="profile-cover-edit kver-action-tooltip"
+                       title="Настроить цвета градиента в шапке профиля команды">
                         <i class="bi bi-palette"></i> Градиент обложки
                     </a>
                     {% endif %}
@@ -25,13 +27,15 @@
                 <div class="profile-header-body">
                     <div class="profile-avatar-wrap">
                         {% block profile_avatar %}{% endblock %}
-                        {% if is_owner %}
+                        {% if is_owner and not is_admin_profile %}
                         {% if profile_user %}
-                        <a href="{% url 'accounts:profile_edit' profile_user.pk %}" class="avatar-upload-btn" title="Загрузить фото">
+                        <a href="{% url 'accounts:profile_edit' profile_user.pk %}" class="avatar-upload-btn kver-action-tooltip"
+                           title="Изменить фото профиля">
                             <i class="bi bi-plus"></i>
                         </a>
                         {% elif team %}
-                        <a href="{% url 'accounts:team_edit' team.pk %}" class="avatar-upload-btn" title="Загрузить логотип">
+                        <a href="{% url 'accounts:team_edit' team.pk %}" class="avatar-upload-btn kver-action-tooltip"
+                           title="Изменить логотип команды">
                             <i class="bi bi-plus"></i>
                         </a>
                         {% endif %}

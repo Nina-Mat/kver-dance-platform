@@ -46,13 +46,14 @@
 
             <div class="bg-card p-4">
 
-                <h2 class="mb-1"><i class="bi bi-camera-video"></i> Новая публикация</h2>
+                <h2 class="mb-1"><i class="bi bi-camera-video"></i> {% if is_edit %}Редактирование{% else %}Новая публикация{% endif %}</h2>
 
-                <p class="text-muted mb-4">YouTube-ссылка или локальный видеофайл</p>
+                <p class="text-muted mb-4">{% if is_edit %}Измените данные публикации{% else %}YouTube-ссылка или локальный видеофайл{% endif %}</p>
 
 
 
-                <form method="post" enctype="multipart/form-data" id="uploadForm">
+                <form method="post" enctype="multipart/form-data" id="uploadForm"
+                      data-moderated-form data-moderated-fields="title,description,tags">
 
                     {% csrf_token %}
 
@@ -76,7 +77,9 @@
 
                             {{ radio.tag }}
 
-                            <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                            <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}
+                            {% if radio.data.value == 'youtube' %}{% include 'core/includes/action_tooltip_hint.html' with text="Вставьте ссылку на ролик — он появится в ленте как кавер" %}{% elif radio.data.value == 'upload' %}{% include 'core/includes/action_tooltip_hint.html' with text="Загрузите видеофайл с устройства — выступление или локальный кавер" %}{% endif %}
+                            </label>
 
                         </div>
 
@@ -120,7 +123,7 @@
 
                         {% include 'accounts/includes/form_field.html' with field=form.video_file %}
 
-                        {% include 'accounts/includes/form_field.html' with field=form.cover_image %}
+                        {% include 'accounts/includes/form_field.html' with field=form.cover_image tooltip_text="Превью для карточки в ленте — необязательно, можно оставить пустым" %}
 
                     </div>
 
@@ -140,11 +143,11 @@
 
                     {% include 'accounts/includes/form_field.html' with field=form.tags %}
 
-                    {% include 'accounts/includes/form_field.html' with field=form.team %}
+                    {% include 'accounts/includes/form_field.html' with field=form.team tooltip_text="Привязать публикацию к команде — она появится в профиле команды" %}
 
 
 
-                    <button type="submit" class="btn btn-neon w-100 mt-2">Опубликовать</button>
+                    <button type="submit" class="btn btn-neon w-100 mt-2">{% if is_edit %}Сохранить{% else %}Опубликовать{% endif %}</button>
 
                 </form>
 

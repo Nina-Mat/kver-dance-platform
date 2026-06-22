@@ -1,7 +1,8 @@
 {% if is_owner and photocard_form %}
 <div class="photo-card-upload mb-4 p-3 rounded" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
     <h6 class="profile-section-title mb-3">Добавить фотокарточку</h6>
-    <form method="post" action="{% url 'accounts:photocard_upload' profile_user.pk %}" enctype="multipart/form-data">
+    <form method="post" action="{% url 'accounts:photocard_upload' profile_user.pk %}" enctype="multipart/form-data"
+          data-moderated-form data-moderated-fields="caption">
         {% csrf_token %}
         <div class="row g-3">
             <div class="col-md-6">
@@ -11,7 +12,7 @@
                 {% include 'accounts/includes/form_field.html' with field=photocard_form.caption %}
             </div>
             <div class="col-md-4">
-                {% include 'accounts/includes/form_field.html' with field=photocard_form.link_type %}
+                {% include 'accounts/includes/form_field.html' with field=photocard_form.link_type tooltip_text="Куда ведёт кнопка «Подробнее» на карточке в ленте" %}
             </div>
             <div class="col-md-4 photocard-field-event">
                 {% include 'accounts/includes/form_field.html' with field=photocard_form.linked_event %}
@@ -53,7 +54,9 @@
             {% if is_owner %}
             <form method="post" action="{% url 'accounts:photocard_delete' profile_user.pk card.pk %}" class="photo-card-delete-form">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Удалить фотокарточку?');">
+                <button type="submit" class="btn btn-outline-danger btn-sm kver-action-tooltip"
+                        title="Удалить фотокарточку без возможности восстановления"
+                        onclick="return confirm('Удалить фотокарточку?');">
                     <i class="bi bi-trash"></i>
                 </button>
             </form>

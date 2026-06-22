@@ -4,7 +4,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
 from .models import CoverMedia, Comment
-from .moderation import find_stop_words
+from .moderation import find_stop_words, MODERATION_POLICY_MESSAGE
 from .utils import parse_youtube_url, validate_video_file
 
 BOOTSTRAP_TEXT = {'class': 'form-control'}
@@ -30,6 +30,7 @@ class CoverMediaForm(forms.ModelForm):
         model = CoverMedia
         fields = [
             'source_type',
+            'feed_type',
             'title',
             'description',
             'video_file',
@@ -66,6 +67,7 @@ class CoverMediaForm(forms.ModelForm):
         }
         labels = {
             'source_type': 'Тип публикации',
+            'feed_type': 'Показывать в ленте как',
             'title': 'Название',
             'description': 'Описание',
             'video_file': 'Видеофайл',
@@ -84,11 +86,14 @@ class CoverMediaForm(forms.ModelForm):
 
         if user:
             from accounts.models import Team
+            from django.db.models import Q
             self.fields['team'].queryset = Team.objects.filter(
-                team_memberships__user=user,
+                Q(team_memberships__user=user) | Q(leader=user),
             ).distinct()
         else:
             self.fields['team'].queryset = self.fields['team'].queryset.none()
+
+        self.fields['feed_type'].widget = forms.RadioSelect(attrs={'class': 'form-check-input'})
 
     def clean(self):
         cleaned_data = super().clean()
@@ -96,6 +101,8 @@ class CoverMediaForm(forms.ModelForm):
 
         if source_type == 'youtube':
             youtube_url = cleaned_data.get('youtube_url') or self.data.get('youtube_url')
+            if not youtube_url and self.instance.pk and self.instance.youtube_url:
+                youtube_url = self.instance.youtube_url
             if not youtube_url:
                 raise forms.ValidationError('Вставьте ссылку на YouTube.')
 
@@ -105,16 +112,28 @@ class CoverMediaForm(forms.ModelForm):
 
             cleaned_data['youtube_id'] = video_id
             cleaned_data['youtube_url'] = youtube_url
+            self.instance.youtube_id = video_id
+            self.instance.youtube_url = youtube_url
+            self.instance.source_type = 'youtube'
 
         elif source_type == 'upload':
             video_file = cleaned_data.get('video_file')
-            if not video_file:
+            if not video_file and not (self.instance.pk and self.instance.video_file):
                 raise forms.ValidationError('Загрузите видеофайл.')
-            validate_video_file(video_file)
+            if video_file:
+                validate_video_file(video_file)
             cleaned_data['youtube_id'] = ''
             cleaned_data['youtube_url'] = ''
 
+        self._validate_profanity(cleaned_data)
+
         return cleaned_data
+
+    def _validate_profanity(self, cleaned_data):
+        for field_name in ('title', 'description', 'tags'):
+            text = cleaned_data.get(field_name) or ''
+            if find_stop_words(str(text)):
+                raise ValidationError(MODERATION_POLICY_MESSAGE)
 
     def clean_video_file(self):
         video_file = self.cleaned_data.get('video_file')
@@ -133,8 +152,13 @@ class CommentForm(forms.ModelForm):
             'text': forms.Textarea(attrs={
                 **BOOTSTRAP_TEXTAREA,
                 'placeholder': 'Напишите комментарий...',
+                'rows': 2,
+                'class': 'form-control comment-compose__input',
             }),
-            'is_anonymous': forms.CheckboxInput(attrs=BOOTSTRAP_CHECKBOX),
+            'is_anonymous': forms.CheckboxInput(attrs={
+                **BOOTSTRAP_CHECKBOX,
+                'class': 'form-check-input comment-compose__anon',
+            }),
         }
         labels = {
             'text': 'Комментарий',
@@ -149,9 +173,6 @@ class CommentForm(forms.ModelForm):
 
         forbidden_words = find_stop_words(text)
         if forbidden_words:
-            raise ValidationError(
-                'Комментарий содержит запрещённые слова. '
-                'Исправьте текст и попробуйте снова.'
-            )
+            raise ValidationError(MODERATION_POLICY_MESSAGE)
 
         return text

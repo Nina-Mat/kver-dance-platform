@@ -11,6 +11,7 @@ def create_notification(
     message,
     team=None,
     application=None,
+    event=None,
     actor=None,
 ):
     return Notification.objects.create(
@@ -20,5 +21,6 @@ def create_notification(
         message=message,
         team=team,
         application=application,
+        event=event,
         actor=actor,
     )

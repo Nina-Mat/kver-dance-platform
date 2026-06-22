@@ -34,27 +34,33 @@
         {% if is_subscribed %}
         <form method="post" action="{% url 'accounts:unsubscribe' team.leader.pk %}" class="d-inline">
             {% csrf_token %}
-            <button type="submit" class="btn btn-outline-neon btn-sm">
+            <button type="submit" class="btn btn-outline-neon btn-sm kver-action-tooltip"
+                    title="Нажмите, чтобы отписаться от капитана — его контент реже будет в ленте">
                 <i class="bi bi-person-check"></i> Вы подписаны
             </button>
         </form>
         {% else %}
         <form method="post" action="{% url 'accounts:subscribe' team.leader.pk %}" class="d-inline">
             {% csrf_token %}
-            <button type="submit" class="btn btn-outline-neon btn-sm">
+            <button type="submit" class="btn btn-outline-neon btn-sm kver-action-tooltip"
+                    title="Подписаться на капитана команды — его публикации чаще в вашей ленте">
                 <i class="bi bi-person-plus"></i> Подписаться
             </button>
         </form>
         {% endif %}
         {% if team.is_open_recruitment and not is_team_member %}
             {% if has_pending_application %}
-            <button type="button" class="btn btn-outline-neon btn-sm" disabled>
-                <i class="bi bi-hourglass-split"></i> Заявка отправлена
-            </button>
+            <span class="d-inline-block kver-action-tooltip" tabindex="0"
+                  title="Заявка уже отправлена и ожидает решения капитана">
+                <button type="button" class="btn btn-outline-neon btn-sm" disabled>
+                    <i class="bi bi-hourglass-split"></i> Заявка отправлена
+                </button>
+            </span>
             {% else %}
             <form method="post" action="{% url 'accounts:team_apply' team.pk %}" class="d-inline">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-outline-neon btn-sm">
+                <button type="submit" class="btn btn-outline-neon btn-sm kver-action-tooltip"
+                        title="Отправить заявку капитану — он рассмотрит её во вкладке «Заявки»">
                     <i class="bi bi-person-plus"></i> Подать заявку
                 </button>
             </form>
@@ -108,6 +114,12 @@
         </button>
     </li>
     {% if is_owner %}
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="applications-tab" data-bs-toggle="tab" data-bs-target="#applications" type="button">
+            <i class="bi bi-inbox"></i> Заявки
+            {% if pending_applications %}<span class="badge bg-danger ms-1">{{ pending_applications|length }}</span>{% endif %}
+        </button>
+    </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button">
             <i class="bi bi-gear"></i> Настройки
@@ -183,7 +195,8 @@
                         {{ add_member_form.role }}
                     </div>
                     <div class="col-md-3">
-                        <button type="submit" class="btn btn-primary w-100">
+                        <button type="submit" class="btn btn-primary w-100 kver-action-tooltip"
+                                title="Добавить подписчика в состав — доступно только среди ваших подписок">
                             <i class="bi bi-plus-lg"></i> Добавить
                         </button>
                     </div>
@@ -221,7 +234,8 @@
                       class="member-remove-form"
                       onsubmit="return confirm('Удалить {{ membership.user.username }} из команды?');">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-outline-danger mt-2" title="Удалить из команды">
+                    <button type="submit" class="btn btn-sm btn-outline-danger mt-2 kver-action-tooltip"
+                            title="Исключить участника из состава команды">
                         <i class="bi bi-person-dash"></i>
                     </button>
                 </form>
@@ -246,6 +260,42 @@
     </div>
 
     {% if is_owner %}
+    <!-- Заявки -->
+    <div class="tab-pane fade" id="applications">
+        {% if pending_applications %}
+        <div class="list-group">
+            {% for app in pending_applications %}
+            <div class="list-group-item bg-transparent border-secondary text-light mb-2 rounded">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                    <div>
+                        <a href="{% url 'accounts:profile' app.applicant.pk %}" class="text-light fw-semibold">
+                            @{{ app.applicant.nickname|default:app.applicant.username }}
+                        </a>
+                        <div class="text-muted small">{{ app.created_at|timesince }} назад</div>
+                        {% if app.message %}<p class="text-secondary small mb-0 mt-2">{{ app.message }}</p>{% endif %}
+                    </div>
+                    <div class="d-flex gap-2">
+                        <form method="post" action="{% url 'accounts:team_application_action' team.pk app.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="accept">
+                            <button type="submit" class="btn btn-sm btn-success kver-action-tooltip"
+                                    title="Добавить пользователя в состав команды">Принять</button>
+                        </form>
+                        <form method="post" action="{% url 'accounts:team_application_action' team.pk app.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="reject">
+                            <button type="submit" class="btn btn-sm btn-outline-danger kver-action-tooltip"
+                                    title="Отклонить заявку — пользователь не попадёт в команду">Отклонить</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Нет новых заявок.</p>
+        {% endif %}
+    </div>
     <!-- Настройки -->
     <div class="tab-pane fade" id="settings">
         {% include 'accounts/includes/profile_settings_tab.html' %}

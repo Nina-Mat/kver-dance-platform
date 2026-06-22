@@ -1,0 +1,54 @@
+{% load media_extras %}
+<div class="comment-item">
+    <div class="comment-item__avatar">
+        {% if comment.is_anonymous %}
+        {% include 'media_app/includes/comment_avatar.html' with is_anonymous=True %}
+        {% else %}
+        {% include 'media_app/includes/comment_avatar.html' with comment_user=comment.user is_anonymous=False %}
+        {% endif %}
+    </div>
+    <div class="comment-item__body">
+        <div class="comment-item__author">
+            {% if comment.is_anonymous %}
+            Аноним
+            {% else %}
+            <a href="{% url 'accounts:profile' comment.user.pk %}" class="text-decoration-none">
+                @{{ comment.user.nickname|default:comment.user.username }}
+            </a>
+            {% endif %}
+        </div>
+        <div class="comment-item__text">{{ comment.text|linkify_mentions }}</div>
+        <div class="comment-item__meta">{{ comment.created_at|date:"d.m.Y в H:i" }}</div>
+    </div>
+    <div class="comment-item__actions">
+        {% if user.is_authenticated %}
+            {% if comment.user_id == user.pk or card.user_id == user.pk %}
+            <form method="post" action="{% url 'accounts:photocard_delete_comment' card.pk comment.pk %}" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="comment-delete-btn kver-action-tooltip"
+                        title="{% if comment.user_id == user.pk %}Удалить свой комментарий{% else %}Удалить комментарий под вашим постом{% endif %}"
+                        onclick="return confirm('Удалить комментарий?');">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
+            {% endif %}
+        {% endif %}
+        <div class="comment-item__like">
+            {% if user.is_authenticated %}
+            <form method="post" action="{% url 'accounts:photocard_toggle_comment_like' card.pk comment.pk %}" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="comment-like-btn{% if comment.pk in user_liked_comment_ids %} comment-like-btn--active{% endif %} kver-action-tooltip"
+                        title="Поставить или убрать лайк на комментарии">
+                    <i class="bi bi-heart{% if comment.pk in user_liked_comment_ids %}-fill{% endif %}"></i>
+                    {% if comment.likes_count %}<span>{{ comment.likes_count }}</span>{% endif %}
+                </button>
+            </form>
+            {% else %}
+            <span class="comment-like-btn comment-like-btn--static">
+                <i class="bi bi-heart"></i>
+                {% if comment.likes_count %}<span>{{ comment.likes_count }}</span>{% endif %}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+</div>

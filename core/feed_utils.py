@@ -1,8 +1,9 @@
 """Сборка гибридной ленты рекомендаций."""
 
-import random
 from dataclasses import dataclass
 from datetime import datetime
+
+from django.db.models import Count, Q
 
 from accounts.models import PhotoCard, Subscription
 from media_app.models import CoverMedia
@@ -28,24 +29,17 @@ def get_subscribed_author_ids(user):
     )
 
 
-def _score_item(item):
-    """Чем выше score, тем выше в ленте. Подписки получают буст."""
-    base = item.created_at.timestamp()
-    if item.boosted:
-        base += 86400 * 14
-    base += random.uniform(0, 7200)
-    return base
-
-
 def build_feed_items(user, limit=50):
     """
     Смешивает фотокарточки, каверы (YouTube) и выступления (загрузки).
-    Контент подписок всплывает чаще — как в Instagram/TikTok.
+    Сортировка: от новых к старым.
     """
     subscribed = get_subscribed_author_ids(user)
     items = []
 
-    photo_cards = PhotoCard.objects.select_related('user').order_by('-created_at')[:100]
+    photo_cards = PhotoCard.objects.select_related('user').annotate(
+        comments_count=Count('comments', filter=Q(comments__is_approved=True)),
+    ).order_by('-created_at')[:100]
     for card in photo_cards:
         items.append(FeedItem(
             'photocard', card, card.created_at, card.user_id,
@@ -65,6 +59,7 @@ def build_feed_items(user, limit=50):
     performances = CoverMedia.objects.filter(
         is_approved=True,
         source_type='upload',
+        feed_type='performance',
     ).select_related('author').prefetch_related('mentioned_users').order_by('-created_at')[:100]
     for perf in performances:
         items.append(FeedItem(
@@ -72,7 +67,18 @@ def build_feed_items(user, limit=50):
             perf.author_id in subscribed,
         ))
 
-    items.sort(key=_score_item, reverse=True)
+    uploads_as_covers = CoverMedia.objects.filter(
+        is_approved=True,
+        source_type='upload',
+        feed_type='cover',
+    ).select_related('author').prefetch_related('mentioned_users').order_by('-created_at')[:100]
+    for cover in uploads_as_covers:
+        items.append(FeedItem(
+            'cover', cover, cover.created_at, cover.author_id,
+            cover.author_id in subscribed,
+        ))
+
+    items.sort(key=lambda item: item.created_at, reverse=True)
     return items[:limit]
 
 
@@ -91,6 +97,7 @@ def build_performances_feed(limit=30):
     return CoverMedia.objects.filter(
         is_approved=True,
         source_type='upload',
+        feed_type='performance',
     ).select_related('author').prefetch_related(
         'mentioned_users',
     ).order_by('?')[:limit]

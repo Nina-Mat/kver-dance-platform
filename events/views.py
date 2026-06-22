@@ -4,10 +4,12 @@ from django.contrib.auth.decorators import login_required
 
 from django.db.models import Q
 
-from django.http import Http404
+from django.http import Http404, JsonResponse
 
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
+
+from accounts.organizer_utils import organizer_can_create_events, organizer_is_verified
 
 
 
@@ -215,8 +217,12 @@ def calendar_view(request):
 
         'filter_suffix': filter_suffix,
 
-        'can_create_event': request.user.user_type == 'organizer',
-
+        'can_create_event': organizer_can_create_events(request.user),
+        'organizer_pending_verification': (
+            request.user.is_authenticated
+            and request.user.user_type == 'organizer'
+            and not organizer_is_verified(request.user)
+        ),
     }
 
     return render(request, 'events/calendar.html', context)
@@ -301,13 +307,27 @@ def event_detail(request, pk):
 
 def event_create(request):
 
-    """Создание мероприятия — только для организаторов."""
+    """Создание мероприятия — только для подтверждённых организаторов."""
 
     if request.user.user_type != 'organizer':
 
         messages.error(request, 'Создавать мероприятия могут только организаторы.')
 
         return redirect('events:calendar')
+
+    if not organizer_can_create_events(request.user):
+
+        messages.warning(
+            request,
+            'Создание мероприятий недоступно, пока администрация KVER не подтвердит '
+            'ваш профиль организатора. Заполните профиль и дождитесь проверки.',
+        )
+
+        return render(request, 'events/create.html', {
+            'form': None,
+            'field_formset': None,
+            'organizer_not_verified': True,
+        })
 
 
 
@@ -348,21 +368,48 @@ def event_create(request):
 
 
     return render(request, 'events/create.html', {
-
         'form': form,
-
         'field_formset': field_formset,
-
+        'organizer_not_verified': False,
     })
 
 
+@login_required
+@require_http_methods(['GET', 'POST'])
+def event_edit(request, pk):
+    """Редактирование мероприятия — только организатор."""
+    event = get_object_or_404(Event, pk=pk)
+    if request.user != event.organizer:
+        messages.error(request, 'Редактировать может только организатор.')
+        return redirect('events:detail', pk=pk)
 
+    if request.method == 'POST':
+        form = EventForm(request.POST, request.FILES, instance=event)
+        field_formset = CustomFieldFormSet(request.POST, prefix='fields')
+        if form.is_valid() and field_formset.is_valid():
+            event = form.save(commit=False)
+            event.form_fields = build_form_fields_config(
+                field_formset,
+                form.cleaned_data.get('require_audio', True),
+            )
+            event.save()
+            messages.success(request, f'Мероприятие «{event.title}» обновлено.')
+            return redirect('events:detail', pk=event.pk)
+    else:
+        form = EventForm(instance=event)
+        field_formset = CustomFieldFormSet(prefix='fields')
+
+    return render(request, 'events/create.html', {
+        'form': form,
+        'field_formset': field_formset,
+        'event': event,
+        'is_edit': True,
+        'organizer_not_verified': False,
+    })
 
 
 @login_required
-
 @require_http_methods(['GET', 'POST'])
-
 def event_apply(request, pk):
 
     """Подача заявки участником на мероприятие."""
@@ -539,6 +586,19 @@ def application_update_status(request, pk):
 
         application.save(update_fields=['status', 'updated_at'])
 
+        from accounts.notifications import create_notification
+        create_notification(
+            recipient=application.applicant,
+            notification_type='event_application',
+            title='Статус заявки обновлён',
+            message=(
+                f'Ваша заявка на «{application.event.title}»: '
+                f'{valid_statuses[new_status]}.'
+            ),
+            event=application.event,
+            actor=request.user,
+        )
+
         messages.success(
 
             request,
@@ -557,4 +617,17 @@ def application_update_status(request, pk):
 
     return redirect('events:applications', pk=application.event.pk)
 
+
+@login_required
+@require_GET
+def location_suggest(request):
+    """Подсказки адреса для карты (прокси к Nominatim)."""
+    from .geocoding import search_locations
+
+    query = request.GET.get('q', '').strip()
+    try:
+        results = search_locations(query)
+    except Exception:
+        return JsonResponse({'results': [], 'error': 'geocode_failed'})
+    return JsonResponse({'results': results})
 

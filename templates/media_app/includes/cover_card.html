@@ -7,9 +7,9 @@
         </a>
         <small class="text-muted">{{ cover.created_at|timesince }} назад</small>
         {% if cover.source_type == 'youtube' %}
-        <span class="stat-badge ms-auto">YouTube</span>
+        <span class="stat-badge ms-auto kver-action-tooltip" title="Открыть видео на YouTube">YouTube</span>
         {% else %}
-        <span class="stat-badge ms-auto">Файл</span>
+        <a href="{% url 'media_app:detail' cover.pk %}" class="stat-badge ms-auto text-decoration-none">Видео</a>
         {% endif %}
     </div>
 
@@ -41,7 +41,7 @@
     </div>
     {% endif %}
 
-    <h5 class="mb-2">
+    <h5 class="mb-2 text-light">
         {% if compact %}
         <a href="{% url 'media_app:detail' cover.pk %}" class="text-decoration-none text-light">{{ cover.title }}</a>
         {% else %}
@@ -71,16 +71,28 @@
     </div>
     {% endif %}
 
-    <div class="d-flex gap-3 align-items-center text-muted small">
+    <div class="d-flex gap-3 align-items-center text-muted small flex-wrap">
         {% if cover.source_type == 'youtube' and cover.youtube_views %}
         <span><i class="bi bi-eye"></i> {{ cover.youtube_views }}</span>
         {% else %}
         <span><i class="bi bi-eye"></i> {{ cover.views_kver }}</span>
         {% endif %}
+        {% if user.is_authenticated %}
+        <form method="post" action="{% url 'media_app:toggle_like' cover.pk %}" class="d-inline m-0">
+            {% csrf_token %}
+            <button type="submit"
+                    class="cover-like-btn{% if cover.pk in user_liked_cover_ids %} cover-like-btn--active{% endif %} kver-action-tooltip"
+                    title="Поставить или убрать лайк">
+                <i class="bi bi-heart{% if cover.pk in user_liked_cover_ids %}-fill{% endif %}"></i>
+                {% if likes_count is not None %}{{ likes_count }}{% else %}{{ cover.likes_kver }}{% endif %}
+            </button>
+        </form>
+        {% else %}
         <span><i class="bi bi-heart"></i> {{ cover.likes_kver }}</span>
+        {% endif %}
         {% if not compact %}
-        <a href="{% url 'media_app:detail' cover.pk %}" class="ms-auto text-decoration-none">
-            <i class="bi bi-chat"></i> Комментарии
+        <a href="{% url 'media_app:detail' cover.pk %}#comments" class="text-decoration-none text-muted">
+            <i class="bi bi-chat"></i> {{ cover.comments.count }}
         </a>
         {% endif %}
     </div>

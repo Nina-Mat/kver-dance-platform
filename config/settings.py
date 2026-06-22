@@ -72,6 +72,10 @@ TEMPLATES = [
                 'accounts.context_processors.messenger_unread',
                 'accounts.context_processors.linked_accounts',
                 'accounts.context_processors.notifications_context',
+                'accounts.context_processors.liked_photo_cards_context',
+                'media_app.context_processors.moderation_context',
+                'media_app.context_processors.liked_covers_context',
+                'core.context_processors.kver_admin_context',
             ],
         },
     },
@@ -127,8 +131,11 @@ COMMENT_STOP_WORDS = [
     'spam', 'scam', 'xxx', 'porn', 'порно', 'спам',
     'мошенник', 'мошенничество', 'реклама', 'casino', 'казино',
     'наркотик', 'наркота', 'сука', 'блять', 'блядь', 'хуй',
-    'пизда', 'ебать', 'fuck', 'shit', 'bitch',
+    'пизда', 'ебать', 'fuck', 'shit',     'bitch',
 ]
+
+# --- Администрация KVER (pk суперпользователя; если None — первый superuser) ---
+KVER_ADMIN_USER_ID = config('KVER_ADMIN_USER_ID', default=None, cast=lambda v: int(v) if v else None)
 
 # --- Настройки для продакшена (DEBUG=False) ---
 if not DEBUG:

@@ -1,0 +1,11 @@
+{% if is_anonymous %}
+<div class="comment-avatar comment-avatar--anon" title="Аноним">
+    <i class="bi bi-incognito"></i>
+</div>
+{% elif comment_user.profile.photo %}
+<img src="{{ comment_user.profile.photo.url }}" alt="" class="comment-avatar">
+{% elif comment_user.photo %}
+<img src="{{ comment_user.photo.url }}" alt="" class="comment-avatar">
+{% else %}
+<div class="comment-avatar comment-avatar--letter">{{ comment_user.username|first|upper }}</div>
+{% endif %}

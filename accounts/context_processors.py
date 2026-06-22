@@ -49,3 +49,16 @@ def notifications_context(request):
         'unread_notifications_count': qs.filter(is_read=False).count(),
         'recent_notifications': qs[:10],
     }
+
+
+def liked_photo_cards_context(request):
+    if not request.user.is_authenticated:
+        return {'user_liked_photo_card_ids': frozenset()}
+
+    from .models import PhotoCardLike
+
+    return {
+        'user_liked_photo_card_ids': frozenset(
+            PhotoCardLike.objects.filter(user=request.user).values_list('photo_id', flat=True)
+        ),
+    }

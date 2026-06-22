@@ -36,6 +36,16 @@ class Event(models.Model):
         verbose_name='Место проведения',
         help_text='Адрес или «онлайн»',
     )
+    location_lat = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name='Широта',
+    )
+    location_lng = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name='Долгота',
+    )
     registration_deadline = models.DateTimeField(verbose_name='Дедлайн регистрации')
     form_fields = models.JSONField(
         default=dict,

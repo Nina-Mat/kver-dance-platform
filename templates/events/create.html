@@ -1,13 +1,56 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Создание мероприятия — KVER{% endblock %}
+{% block title %}{% if is_edit %}Редактирование{% else %}Создание{% endif %} мероприятия — KVER{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+    .event-location-wrap { position: relative; }
+    .location-suggest-dropdown {
+        display: none; position: absolute; left: 0; right: 0; z-index: 1050;
+        margin-top: 4px; background: var(--bg-card); border: 1px solid rgba(139,92,246,0.2);
+        border-radius: 8px; max-height: 220px; overflow-y: auto;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .location-suggest-dropdown.show { display: block; }
+    .location-suggest-item {
+        display: block; width: 100%; text-align: left; border: none; background: transparent;
+        color: var(--text-main); padding: 10px 12px; font-size: 0.85rem; cursor: pointer;
+    }
+    .location-suggest-item:hover { background: rgba(139,92,246,0.12); }
+    .location-suggest-empty { padding: 12px; font-size: 0.85rem; }
+    #eventLocationMap { height: 240px; border-radius: 12px; margin-top: 12px; z-index: 1; }
+    .event-type-chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 14px; border-radius: 20px; font-size: 0.9rem;
+        background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.25);
+        color: var(--text-main); cursor: pointer;
+    }
+    .event-type-chip input { accent-color: var(--accent-purple); }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-lg-8 col-md-10">
             <div class="bg-card p-4">
-                <h2 class="mb-1"><i class="bi bi-calendar-plus"></i> Создание мероприятия</h2>
+                <h2 class="mb-1"><i class="bi bi-calendar-plus"></i> {% if is_edit %}Редактирование{% else %}Создание{% endif %} мероприятия</h2>
+
+                {% if organizer_not_verified %}
+                <div class="alert alert-warning mt-4 mb-0">
+                    <h5 class="alert-heading"><i class="bi bi-shield-exclamation"></i> Профиль не подтверждён</h5>
+                    <p class="mb-2">
+                        Создавать мероприятия (баттлы, фестивали, кастинги, чемпионаты) можно только после
+                        подтверждения аккаунта администрацией KVER.
+                    </p>
+                    <p class="mb-0 small">
+                        Пока заполните профиль организатора. Когда администратор проверит заявку, вы получите
+                        уведомление и сможете публиковать события в календаре.
+                    </p>
+                </div>
+                {% else %}
                 <p class="text-muted mb-4">Мероприятие появится в календаре в дату проведения</p>
 
                 {% include 'events/includes/platform_commission_stub.html' %}
@@ -21,7 +64,21 @@
 
                     <h5 class="profile-section-title mb-3">Основная информация</h5>
                     {% include 'accounts/includes/form_field.html' with field=form.title %}
-                    {% include 'accounts/includes/form_field.html' with field=form.event_type %}
+
+                    <h5 class="profile-section-title mb-2">Тип мероприятия</h5>
+                    <p class="text-muted small mb-3">Те же категории, что и в фильтре календаря</p>
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        {% for radio in form.event_type %}
+                        <label class="event-type-chip mb-0">
+                            {{ radio.tag }}
+                            {{ radio.choice_label }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% for error in form.event_type.errors %}
+                    <div class="text-danger small mb-3">{{ error }}</div>
+                    {% endfor %}
+
                     {% include 'accounts/includes/form_field.html' with field=form.description %}
 
                     <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
@@ -29,13 +86,24 @@
                     <h5 class="profile-section-title mb-3">Дата и место</h5>
                     {% include 'accounts/includes/form_field.html' with field=form.event_date %}
                     {% include 'accounts/includes/form_field.html' with field=form.registration_deadline %}
-                    {% include 'accounts/includes/form_field.html' with field=form.location %}
+                    <div class="mb-3 event-location-wrap" data-suggest-url="{% url 'events:location_suggest' %}">
+                        <label for="id_location" class="form-label">{{ form.location.label }}</label>
+                        {{ form.location }}
+                        {% if form.location.errors %}
+                        <div class="text-danger small">{{ form.location.errors }}</div>
+                        {% endif %}
+                        <p class="text-muted small mb-0 mt-1">Начните вводить адрес — появятся подсказки и точка на карте. Для онлайн-мероприятия введите «онлайн».</p>
+                        <div class="location-suggest-dropdown" id="locationSuggestDropdown"></div>
+                        <div id="eventLocationMap"></div>
+                        {{ form.location_lat }}
+                        {{ form.location_lng }}
+                    </div>
 
                     <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
 
                     <h5 class="profile-section-title mb-3">Медиа и публикация</h5>
                     {% include 'accounts/includes/form_field.html' with field=form.logo %}
-                    {% include 'accounts/includes/form_field.html' with field=form.is_published %}
+                    {% include 'accounts/includes/form_field.html' with field=form.is_published tooltip_text="Если выключено, мероприятие сохранится как черновик и не появится в общем календаре" %}
 
                     <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
 
@@ -44,58 +112,31 @@
                         Настройте поля, которые участники заполнят при подаче заявки.
                         Оставьте строки пустыми, если поле не нужно.
                     </p>
-                    {% include 'accounts/includes/form_field.html' with field=form.require_audio %}
+                    {% include 'accounts/includes/form_field.html' with field=form.require_audio tooltip_text="Участник обязан приложить аудиофайл при подаче заявки" %}
 
                     {{ field_formset.management_form }}
-                    {% if field_formset.non_form_errors %}
-                    <div class="alert alert-danger">{{ field_formset.non_form_errors }}</div>
-                    {% endif %}
-
-                    <div class="table-responsive mb-3">
-                        <table class="table table-dark table-borderless align-middle mb-0" style="--bs-table-bg: transparent;">
-                            <thead>
-                                <tr class="text-muted small">
-                                    <th>Название поля</th>
-                                    <th style="width: 180px;">Тип</th>
-                                    <th style="width: 110px;">Обязательное</th>
-                                    <th style="width: 60px;"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for field_form in field_formset %}
-                                <tr>
-                                    <td>
-                                        {% for hidden in field_form.hidden_fields %}{{ hidden }}{% endfor %}
-                                        {{ field_form.label }}
-                                        {% if field_form.label.errors %}<div class="text-danger small">{{ field_form.label.errors }}</div>{% endif %}
-                                    </td>
-                                    <td>{{ field_form.field_type }}</td>
-                                    <td>
-                                        <div class="form-check">
-                                            {{ field_form.required }}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        {% if field_formset.can_delete %}
-                                        <div class="form-check">
-                                            {{ field_form.DELETE }}
-                                            <label class="form-check-label small text-muted" for="{{ field_form.DELETE.id_for_label }}">Удалить</label>
-                                        </div>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    {% for field_form in field_formset %}
+                    <div class="row g-2 mb-2 align-items-end">
+                        <div class="col-md-5">{{ field_form.label }}</div>
+                        <div class="col-md-3">{{ field_form.field_type }}</div>
+                        <div class="col-md-2">{{ field_form.required }}</div>
+                        <div class="col-md-2">{{ field_form.DELETE }}</div>
                     </div>
+                    {% endfor %}
 
-                    <div class="d-flex gap-2 mt-4">
-                        <button type="submit" class="btn btn-neon">Создать мероприятие</button>
-                        <a href="{% url 'events:calendar' %}" class="btn btn-outline-neon">Отмена</a>
-                    </div>
+                    <button type="submit" class="btn btn-neon">{% if is_edit %}Сохранить{% else %}Создать мероприятие{% endif %}</button>
+                    <a href="{% url 'events:calendar' %}" class="btn btn-outline-neon">Отмена</a>
                 </form>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if not organizer_not_verified %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'js/event_location.js' %}"></script>
+{% endif %}
 {% endblock %}

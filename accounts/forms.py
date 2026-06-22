@@ -16,13 +16,16 @@ from .models import (
     OrganizerProfile,
     SpecialistProfile,
     PhotoCard,
+    PhotoCardComment,
     PhotoAlbum,
 )
 from events.models import Event
 from media_app.models import CoverMedia
+from media_app.moderation import find_stop_words, MODERATION_POLICY_MESSAGE
 
 
-NICKNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_]{3,30}$')
+NICKNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_.]{3,30}$')
+NICKNAME_FORMAT_HINT = '3–30 символов: латиница, цифры, точка (.) и подчёркивание (_).'
 PHONE_DIGITS_PATTERN = re.compile(r'\D')
 
 
@@ -93,9 +96,7 @@ def validate_unique_nickname(nickname, instance_pk=None):
         raise ValidationError('Уникальное имя (@username) обязательно для заполнения.')
 
     if not NICKNAME_PATTERN.match(nickname):
-        raise ValidationError(
-            'Имя должно содержать 3–30 символов: латиница, цифры и подчёркивание.'
-        )
+        raise ValidationError(f'Имя должно содержать {NICKNAME_FORMAT_HINT}')
 
     qs = CustomUser.objects.filter(nickname__iexact=nickname)
     if instance_pk:
@@ -111,9 +112,7 @@ def validate_unique_team_username(username, instance_pk=None):
         raise ValidationError('Уникальное имя (@username) обязательно для заполнения.')
 
     if not NICKNAME_PATTERN.match(username):
-        raise ValidationError(
-            'Имя должно содержать 3–30 символов: латиница, цифры и подчёркивание.'
-        )
+        raise ValidationError(f'Имя должно содержать {NICKNAME_FORMAT_HINT}')
 
     qs = Team.objects.filter(username__iexact=username)
     if instance_pk:
@@ -667,7 +666,7 @@ class PhotoCardForm(forms.ModelForm):
             'linked_cover': 'Кавер',
         }
 
-    def __init__(self, user=None, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['linked_event'].required = False
         self.fields['linked_cover'].required = False
@@ -676,6 +675,9 @@ class PhotoCardForm(forms.ModelForm):
         self.fields['linked_cover'].empty_label = '— выберите кавер —'
         self.fields['album'].required = False
         self.fields['album'].empty_label = '— без альбома —'
+        self.fields['link_type'].required = False
+        if not self.is_bound:
+            self.initial.setdefault('link_type', 'none')
         if user:
             self.fields['linked_event'].queryset = Event.objects.all().order_by('-event_date')
             self.fields['linked_cover'].queryset = CoverMedia.objects.filter(
@@ -686,14 +688,52 @@ class PhotoCardForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        link_type = cleaned.get('link_type')
+        link_type = cleaned.get('link_type') or 'none'
+        cleaned['link_type'] = link_type
         if link_type == 'event' and not cleaned.get('linked_event'):
             raise ValidationError({'linked_event': 'Выберите мероприятие.'})
         if link_type == 'cover' and not cleaned.get('linked_cover'):
             raise ValidationError({'linked_cover': 'Выберите кавер.'})
         if link_type in ('performance', 'url') and not cleaned.get('link_url'):
             raise ValidationError({'link_url': 'Укажите ссылку.'})
+
+        caption = cleaned.get('caption') or ''
+        if find_stop_words(str(caption)):
+            raise ValidationError(MODERATION_POLICY_MESSAGE)
+
         return cleaned
+
+
+class PhotoCardCommentForm(forms.ModelForm):
+    """Комментарий к фотокарточке с автомодерацией."""
+
+    class Meta:
+        model = PhotoCardComment
+        fields = ['text', 'is_anonymous']
+        widgets = {
+            'text': forms.Textarea(attrs={
+                **BOOTSTRAP_TEXTAREA,
+                'placeholder': 'Напишите комментарий...',
+                'rows': 2,
+                'class': 'form-control comment-compose__input',
+            }),
+            'is_anonymous': forms.CheckboxInput(attrs={
+                **BOOTSTRAP_CHECKBOX,
+                'class': 'form-check-input comment-compose__anon',
+            }),
+        }
+        labels = {
+            'text': 'Комментарий',
+            'is_anonymous': 'Опубликовать анонимно',
+        }
+
+    def clean_text(self):
+        text = self.cleaned_data.get('text', '').strip()
+        if not text:
+            raise ValidationError('Комментарий не может быть пустым.')
+        if find_stop_words(text):
+            raise ValidationError(MODERATION_POLICY_MESSAGE)
+        return text
 
 
 class PhotoAlbumForm(forms.ModelForm):

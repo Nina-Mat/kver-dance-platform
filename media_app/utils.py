@@ -146,3 +146,46 @@ def validate_video_file(video_file):
         raise ValidationError('Размер видеофайла не должен превышать 200 МБ.')
 
     return video_file
+
+
+def get_viewer_key(request):
+    """Стабильный идентификатор зрителя для учёта просмотров."""
+    if request.user.is_authenticated:
+        return f'user:{request.user.pk}'
+    if not request.session.session_key:
+        request.session.save()
+    return f'session:{request.session.session_key}'
+
+
+def record_cover_view(request, cover):
+    """Увеличивает счётчик просмотров, если пользователь ещё не смотрел пост сегодня."""
+    from django.db import IntegrityError, transaction
+    from django.db.models import F
+    from django.utils import timezone
+
+    from .models import CoverMedia, CoverMediaDailyView
+
+    today = timezone.localdate()
+    viewer_key = get_viewer_key(request)
+
+    if CoverMediaDailyView.objects.filter(
+        media_id=cover.pk,
+        viewer_key=viewer_key,
+        view_date=today,
+    ).exists():
+        return
+
+    try:
+        with transaction.atomic():
+            CoverMediaDailyView.objects.create(
+                media=cover,
+                viewer_key=viewer_key,
+                view_date=today,
+                user=request.user if request.user.is_authenticated else None,
+                session_key=request.session.session_key or '',
+            )
+            CoverMedia.objects.filter(pk=cover.pk).update(views_kver=F('views_kver') + 1)
+    except IntegrityError:
+        return
+
+    cover.refresh_from_db(fields=['views_kver'])

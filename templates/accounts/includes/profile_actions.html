@@ -10,7 +10,8 @@
     {% if is_subscribed %}
     <form method="post" action="{% url 'accounts:unsubscribe' profile_user.pk %}" class="d-inline">
         {% csrf_token %}
-        <button type="submit" class="btn btn-outline-neon btn-sm">
+        <button type="submit" class="btn btn-outline-neon btn-sm kver-action-tooltip"
+                title="Нажмите, чтобы отписаться — контент автора реже будет в ленте">
             <i class="bi bi-person-check"></i> Вы подписаны
         </button>
     </form>

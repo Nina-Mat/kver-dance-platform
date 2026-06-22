@@ -10,6 +10,8 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 from urllib.parse import urlparse
 
+from media_app.moderation import MODERATION_POLICY_MESSAGE
+
 from .forms import PhotoAlbumForm, PhotoCardForm
 from .models import (
     Conversation,
@@ -207,6 +209,9 @@ def photos_section(request):
     my_photos = PhotoCard.objects.filter(user=user).select_related(
         'album', 'linked_event', 'linked_cover',
     ).prefetch_related('tagged_users').order_by('-created_at')
+    album_filter = request.GET.get('album')
+    if album_filter and tab == 'mine':
+        my_photos = my_photos.filter(album_id=album_filter)
 
     tagged_photos = PhotoCard.objects.filter(
         tagged_users=user,
@@ -233,6 +238,16 @@ def photos_section(request):
                 card.user = user
                 card.save()
                 messages.success(request, 'Фото добавлено.')
+                return redirect(f"{request.path}?tab=mine")
+            else:
+                for field, errors in form.errors.items():
+                    for err in errors:
+                        tags = 'moderation' if str(err) == MODERATION_POLICY_MESSAGE else ''
+                        messages.error(
+                            request,
+                            f'{form.fields[field].label if field in form.fields else field}: {err}',
+                            extra_tags=tags,
+                        )
                 return redirect(f"{request.path}?tab=mine")
 
     album_form = PhotoAlbumForm()

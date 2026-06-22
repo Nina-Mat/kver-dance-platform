@@ -19,7 +19,8 @@
             <i class="bi bi-check-circle-fill account-switcher-active-icon"></i>
         </div>
         {% else %}
-        <a href="{% url 'accounts:switch_account' account.pk %}" class="account-switcher-main text-decoration-none">
+        <a href="{% url 'accounts:switch_account' account.pk %}" class="account-switcher-main text-decoration-none kver-action-tooltip"
+           title="Переключиться на @{{ account.nickname|default:account.username }} без повторного входа">
             <span class="account-switcher-avatar account-switcher-avatar--{{ account.navbar_avatar_shape }}">
                 {% if account.navbar_photo_url %}
                 <img src="{{ account.navbar_photo_url }}" alt="">
@@ -36,15 +37,20 @@
 
         <form method="post" action="{% url 'accounts:remove_account' account.pk %}" class="account-switcher-logout-form">
             {% csrf_token %}
-            <button type="submit" class="account-switcher-logout-btn" title="Выйти из @{{ account.nickname|default:account.username }}">
+            <button type="submit" class="account-switcher-logout-btn kver-action-tooltip"
+                title="Убрать @{{ account.nickname|default:account.username }} из списка быстрого переключения">
                 <i class="bi bi-box-arrow-right"></i>
             </button>
         </form>
     </div>
     {% endfor %}
 
-    <a href="{% url 'accounts:login' %}?add=1" class="account-switcher-add">
-        <i class="bi bi-plus-circle"></i> Добавить аккаунт
+    <a href="{% url 'accounts:register' %}?add=1" class="account-switcher-add">
+        <i class="bi bi-person-plus"></i> Создать новый аккаунт
+    </a>
+    <a href="{% url 'accounts:login' %}?add=1" class="account-switcher-add kver-action-tooltip"
+       title="Войти в другой аккаунт и сохранить его для быстрого переключения">
+        <i class="bi bi-plus-circle"></i> Добавить существующий
     </a>
 
     <hr class="dropdown-divider">
@@ -55,7 +61,8 @@
 
     <hr class="dropdown-divider">
 
-    <a class="dropdown-item text-danger" href="{% url 'accounts:logout' %}">
+    <a class="dropdown-item text-danger kver-action-tooltip" href="{% url 'accounts:logout' %}"
+       title="Завершить сессию всех привязанных аккаунтов на этом устройстве">
         <i class="bi bi-box-arrow-left"></i> Выйти из всех аккаунтов
     </a>
 </div>

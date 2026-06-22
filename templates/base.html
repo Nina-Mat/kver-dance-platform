@@ -120,6 +120,17 @@
         }
         .search-suggest-all:hover { background: rgba(139,92,246,0.08); color: var(--accent-pink); }
         .search-suggest-empty { padding: 16px 12px; font-size: 0.88rem; }
+        @media (max-width: 991px) {
+            .global-search-wrap { position: static; }
+            .search-dropdown {
+                position: fixed;
+                left: 12px;
+                right: 12px;
+                top: calc(var(--header-height) + 4px);
+                max-height: min(60vh, 420px);
+                overflow-y: auto;
+            }
+        }
         .bell-icon {
             color: var(--text-muted); font-size: 1.3rem; transition: all 0.2s;
             padding: 6px; border-radius: 6px; position: relative;
@@ -147,6 +158,11 @@
         .notification-item-title { font-size: 0.88rem; font-weight: 600; margin-bottom: 2px; }
         .notification-item-text { font-size: 0.8rem; color: var(--text-muted); margin: 0; }
         .notification-item-time { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
+        .notification-item--actions { cursor: default; }
+        .notification-item--actions:hover { background: rgba(236,72,153,0.08); }
+        .notification-item-actions {
+            display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.65rem;
+        }
         .notifications-empty { padding: 20px 14px; text-align: center; color: var(--text-muted); font-size: 0.88rem; }
 
         /* Профиль (справа) */
@@ -271,7 +287,7 @@
         </button>
         {% endif %}
         <!-- Логотип -->
-        <a href="{% url 'core:landing' %}" class="logo-block">
+        <a href="{% if user.is_authenticated %}{% url 'core:feed' %}{% else %}{% url 'core:landing' %}{% endif %}" class="logo-block">
             <div class="logo-icon"><i class="bi bi-play-fill text-white"></i></div>
             <span class="logo-text">KVER</span>
         </a>
@@ -299,12 +315,35 @@
                 <div class="dropdown-menu dropdown-menu-end notifications-dropdown">
                     {% if recent_notifications %}
                         {% for notification in recent_notifications %}
+                        {% if notification.notification_type == 'organizer_verification' and user.is_superuser and not notification.is_read %}
+                        <div class="notification-item notification-item--unread notification-item--actions">
+                            <div class="notification-item-title">{{ notification.title }}</div>
+                            <p class="notification-item-text">{{ notification.message }}</p>
+                            <div class="notification-item-time">{{ notification.created_at|timesince }} назад</div>
+                            <div class="notification-item-actions">
+                                <form method="post" action="{% url 'accounts:organizer_verification_action' notification.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="approve">
+                                    <button type="submit" class="btn btn-neon btn-sm">Подтвердить</button>
+                                </form>
+                                <form method="post" action="{% url 'accounts:organizer_verification_action' notification.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="reject">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Отклонить</button>
+                                </form>
+                                {% if notification.actor_id %}
+                                <a href="{% url 'accounts:profile' notification.actor_id %}" class="btn btn-outline-neon btn-sm">Профиль</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% else %}
                         <a href="{% url 'accounts:notification_read' notification.pk %}"
                            class="notification-item{% if not notification.is_read %} notification-item--unread{% endif %}">
                             <div class="notification-item-title">{{ notification.title }}</div>
                             <p class="notification-item-text">{{ notification.message }}</p>
                             <div class="notification-item-time">{{ notification.created_at|timesince }} назад</div>
                         </a>
+                        {% endif %}
                         {% endfor %}
                     {% else %}
                         <div class="notifications-empty">Нет уведомлений</div>
@@ -347,7 +386,7 @@
             <li><a href="{% url 'media_app:performances_feed' %}" class="{% if request.resolver_match.url_name == 'performances_feed' %}active{% endif %}"><i class="bi bi-trophy"></i><span>Выступления</span></a></li>
             <li><a href="{% url 'events:calendar' %}" class="{% if 'events' in request.path %}active{% endif %}"><i class="bi bi-calendar-event"></i><span>Мероприятия</span></a></li>
             <li><hr class="border-secondary my-2" style="border-color: rgba(255,255,255,0.08) !important;"></li>
-            <li><a href="#"><i class="bi bi-question-circle"></i><span>Помощь</span></a></li>
+            <li><a href="{% url 'core:help' %}" class="{% if request.resolver_match.url_name == 'help' and request.resolver_match.namespace == 'core' %}active{% endif %}"><i class="bi bi-question-circle"></i><span>Помощь</span></a></li>
         </ul>
     </nav>
     {% endif %}
@@ -356,7 +395,7 @@
     <main class="{% if user.is_authenticated %}main-content{% endif %}">
         {% if messages %}
             {% for message in messages %}
-                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                <div class="alert alert-{% if 'error' in message.tags %}danger{% else %}{{ message.tags }}{% endif %}{% if 'moderation' in message.tags %} moderation{% endif %} alert-dismissible fade show" role="alert">
                     {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
@@ -365,6 +404,9 @@
 
         {% block content %}{% endblock %}
     </main>
+
+    {% include 'core/includes/moderation_policy_modal.html' %}
+    <script id="kver-stop-words" type="application/json">{{ moderation_stop_words_json|safe }}</script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -383,8 +425,19 @@
             });
             if (overlay) overlay.addEventListener('click', closeSidebar);
         })();
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.kver-action-tooltip, [data-bs-toggle="tooltip"]').forEach(function (el) {
+                if (bootstrap.Tooltip.getInstance(el)) return;
+                new bootstrap.Tooltip(el, {
+                    trigger: 'hover focus',
+                    customClass: 'kver-tooltip',
+                });
+            });
+        });
     </script>
     {% block extra_js %}{% endblock %}
+    <script src="{% static 'js/moderation.js' %}"></script>
     <script src="{% static 'js/search.js' %}"></script>
 </body>
 </html>

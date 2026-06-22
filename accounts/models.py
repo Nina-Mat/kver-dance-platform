@@ -355,6 +355,11 @@ class Notification(models.Model):
     TYPE_CHOICES = [
         ('team_application', 'Заявка в команду'),
         ('team_added', 'Добавлен в команду'),
+        ('event_application', 'Заявка на мероприятие'),
+        ('organizer_verification', 'Подтверждение организатора'),
+        ('organizer_verified', 'Организатор подтверждён'),
+        ('organizer_rejected', 'Организатор отклонён'),
+        ('new_user_registration', 'Новая регистрация'),
     ]
 
     recipient = models.ForeignKey(
@@ -386,6 +391,14 @@ class Notification(models.Model):
         related_name='notifications',
         verbose_name='Заявка',
     )
+    event = models.ForeignKey(
+        'events.Event',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='notifications',
+        verbose_name='Мероприятие',
+    )
     actor = models.ForeignKey(
         CustomUser,
         on_delete=models.SET_NULL,
@@ -407,6 +420,21 @@ class Notification(models.Model):
 
     def get_target_url(self):
         from django.urls import reverse
+        if self.notification_type == 'new_user_registration' and self.actor_id:
+            actor = self.actor
+            if actor.user_type == 'team':
+                team = getattr(actor, 'team_profile', None)
+                if team:
+                    return reverse('accounts:team_profile', kwargs={'pk': team.pk})
+            return reverse('accounts:profile', kwargs={'pk': self.actor_id})
+        if self.notification_type == 'organizer_verification' and self.actor_id:
+            return reverse('accounts:profile', kwargs={'pk': self.actor_id})
+        if self.notification_type in ('organizer_verified', 'organizer_rejected'):
+            return reverse('accounts:profile', kwargs={'pk': self.recipient_id})
+        if self.notification_type == 'team_application' and self.team_id:
+            return reverse('accounts:team_profile', kwargs={'pk': self.team_id}) + '#applications'
+        if self.notification_type == 'event_application' and self.event_id:
+            return reverse('events:detail', kwargs={'pk': self.event_id})
         if self.team_id:
             return reverse('accounts:team_profile', kwargs={'pk': self.team_id})
         return reverse('accounts:profile', kwargs={'pk': self.recipient_id})
@@ -636,6 +664,14 @@ class PhotoCard(models.Model):
         auto_now_add=True,
         verbose_name='Дата публикации',
     )
+    views_kver = models.PositiveIntegerField(
+        default=0,
+        verbose_name='Просмотры на KVER',
+    )
+    likes_kver = models.PositiveIntegerField(
+        default=0,
+        verbose_name='Лайки на KVER',
+    )
 
     class Meta:
         verbose_name = 'Фотокарточка'
@@ -668,6 +704,124 @@ class PhotoCard(models.Model):
         if self.link_type == 'cover' and self.linked_cover_id:
             return self.linked_cover.title
         return labels.get(self.link_type, '')
+
+    def get_absolute_url(self):
+        return reverse('accounts:photocard_detail', kwargs={'pk': self.pk})
+
+
+class PhotoCardDailyView(models.Model):
+    """Один просмотр фотокарточки от пользователя или сессии за календарные сутки."""
+
+    photo = models.ForeignKey(
+        PhotoCard,
+        on_delete=models.CASCADE,
+        related_name='daily_views',
+        verbose_name='Фотокарточка',
+    )
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='photocard_daily_views',
+        verbose_name='Пользователь',
+    )
+    session_key = models.CharField(max_length=40, blank=True, default='')
+    viewer_key = models.CharField(max_length=128, verbose_name='Ключ зрителя')
+    view_date = models.DateField(verbose_name='Дата просмотра')
+
+    class Meta:
+        verbose_name = 'Дневной просмотр фото'
+        verbose_name_plural = 'Дневные просмотры фото'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['photo', 'viewer_key', 'view_date'],
+                name='unique_photocard_daily_view',
+            ),
+        ]
+
+
+class PhotoCardLike(models.Model):
+    """Лайк пользователя на фотокарточку."""
+
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='photocard_likes',
+        verbose_name='Пользователь',
+    )
+    photo = models.ForeignKey(
+        PhotoCard,
+        on_delete=models.CASCADE,
+        related_name='likes',
+        verbose_name='Фотокарточка',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Лайк фото'
+        verbose_name_plural = 'Лайки фото'
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'photo'], name='unique_photocard_like'),
+        ]
+
+
+class PhotoCardComment(models.Model):
+    """Комментарий к фотокарточке."""
+
+    photo = models.ForeignKey(
+        PhotoCard,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='Фотокарточка',
+    )
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name='Автор',
+    )
+    text = models.TextField(verbose_name='Текст комментария')
+    is_anonymous = models.BooleanField(default=False, verbose_name='Анонимно')
+    is_approved = models.BooleanField(default=False, verbose_name='Прошёл модерацию')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата')
+
+    class Meta:
+        verbose_name = 'Комментарий к фото'
+        verbose_name_plural = 'Комментарии к фото'
+        ordering = ['created_at']
+
+    def __str__(self):
+        author_name = 'Аноним' if self.is_anonymous else (self.user.username if self.user else 'Удалён')
+        return f'Комментарий к фото #{self.photo_id} от {author_name}'
+
+
+class PhotoCardCommentLike(models.Model):
+    """Лайк пользователя на комментарий к фото."""
+
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='photocard_comment_likes',
+        verbose_name='Пользователь',
+    )
+    comment = models.ForeignKey(
+        PhotoCardComment,
+        on_delete=models.CASCADE,
+        related_name='likes',
+        verbose_name='Комментарий',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Лайк комментария к фото'
+        verbose_name_plural = 'Лайки комментариев к фото'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'comment'],
+                name='unique_photocard_comment_like',
+            ),
+        ]
 
 
 class Subscription(models.Model):

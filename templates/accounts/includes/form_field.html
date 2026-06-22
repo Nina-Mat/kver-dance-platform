@@ -3,8 +3,10 @@
     {% if field.field.widget.input_type == 'checkbox' %}
     {{ field }}
     <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {% if tooltip_text %}{% include 'core/includes/action_tooltip_hint.html' with text=tooltip_text %}{% endif %}
     {% else %}
     <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {% if tooltip_text %}{% include 'core/includes/action_tooltip_hint.html' with text=tooltip_text %}{% endif %}
     {{ field }}
     {% endif %}
     {% if field.help_text %}

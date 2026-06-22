@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load media_extras %}
+
+{% block title %}Фотокарточка — KVER{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="bg-card p-4">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                    <div>
+                        <span class="stat-badge mb-2 d-inline-block">Фотокарточка</span>
+                        <p class="text-muted mb-0">
+                            <a href="{% url 'accounts:profile' card.user.pk %}" class="text-decoration-none">
+                                @{{ card.user.nickname|default:card.user.username }}
+                            </a>
+                            · {{ card.created_at|date:"d.m.Y H:i" }}
+                        </p>
+                    </div>
+                    <a href="{% url 'core:feed' %}" class="btn btn-outline-neon btn-sm">
+                        <i class="bi bi-arrow-left"></i> В ленту
+                    </a>
+                </div>
+
+                <div class="feed-photo-wrap mb-3">
+                    <img src="{{ card.image.url }}" alt="{{ card.caption|default:'Фото' }}" class="w-100 rounded">
+                </div>
+
+                {% if card.caption %}
+                <p class="text-secondary mb-3" style="line-height: 1.7;">{{ card.caption|linkify_mentions }}</p>
+                {% endif %}
+
+                {% with link_url=card.get_link_display_url link_label=card.get_link_label %}
+                {% if link_url %}
+                <a href="{{ link_url }}" class="photo-card-link d-inline-block mb-3" target="_blank" rel="noopener noreferrer">
+                    <i class="bi bi-link-45deg"></i> {{ link_label|default:"Подробнее" }}
+                </a>
+                {% endif %}
+                {% endwith %}
+
+                <div class="post-engagement">
+                    <div class="post-engagement__stats text-muted small">
+                        <span><i class="bi bi-eye"></i> {{ card.views_kver }}</span>
+                        <span class="{% if user_liked %}post-engagement__stat-liked{% endif %}">
+                            <i class="bi bi-heart{% if user_liked %}-fill{% endif %}"></i> {{ likes_count }}
+                        </span>
+                        <span><i class="bi bi-chat"></i> {{ comments_count }}</span>
+                    </div>
+                    <div class="post-engagement__actions">
+                        {% if user.is_authenticated %}
+                        <form method="post" action="{% url 'accounts:photocard_toggle_like' card.pk %}" class="m-0">
+                            {% csrf_token %}
+                            <button type="submit" class="post-action-btn{% if user_liked %} post-action-btn--active{% endif %}">
+                                <i class="bi bi-heart{% if user_liked %}-fill{% endif %}"></i> Нравится
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="post-action-btn post-action-btn--static">
+                            <i class="bi bi-heart"></i> Нравится
+                        </span>
+                        {% endif %}
+                        <a href="#comments" class="post-action-btn post-action-btn--link">
+                            <i class="bi bi-chat"></i> Комментарии
+                        </a>
+                    </div>
+                </div>
+
+                <section class="comments-section" id="comments">
+                    <h5 class="comments-section__title">Комментарии</h5>
+
+                    {% if user.is_authenticated %}
+                    <form method="post" action="{% url 'accounts:photocard_comment' card.pk %}" class="comment-compose"
+                          data-moderated-form data-moderated-fields="text">
+                        {% csrf_token %}
+                        <div class="comment-compose__avatar">
+                            {% include 'media_app/includes/comment_avatar.html' with comment_user=user is_anonymous=False %}
+                        </div>
+                        <div class="comment-compose__body">
+                            {{ comment_form.text }}
+                            <div class="comment-compose__footer">
+                                <label class="comment-compose__anon-label kver-action-tooltip"
+                                       title="Ваш ник не будет виден другим пользователям">
+                                    {{ comment_form.is_anonymous }}
+                                    <span>Опубликовать анонимно</span>
+                                </label>
+                                <button type="submit" class="btn btn-neon btn-sm comment-compose__submit">
+                                    <i class="bi bi-send"></i> Отправить
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    {% else %}
+                    <p class="text-muted small mb-3">
+                        <a href="{% url 'accounts:login' %}">Войдите</a>, чтобы оставить комментарий.
+                    </p>
+                    {% endif %}
+
+                    <div class="comments-list">
+                        {% for comment in comments %}
+                        {% include 'accounts/includes/photocard_comment_item.html' with comment=comment card=card %}
+                        {% empty %}
+                        <p class="comments-empty">Комментариев пока нет — будьте первым.</p>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

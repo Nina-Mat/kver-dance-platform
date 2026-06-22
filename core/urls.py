@@ -10,4 +10,8 @@ urlpatterns = [
     path('search/suggest/', views.search_suggest, name='search_suggest'),
     path('teams/', views.TeamsView.as_view(), name='teams'),
     path('specialists/', views.SpecialistsView.as_view(), name='specialists'),
+    path('help/', views.HelpView.as_view(), name='help'),
+    path('info-posts/create/', views.info_post_create, name='info_post_create'),
+    path('info-posts/<int:pk>/edit/', views.info_post_edit, name='info_post_edit'),
+    path('info-posts/<int:pk>/delete/', views.info_post_delete, name='info_post_delete'),
 ]

@@ -1,0 +1,106 @@
+{% extends 'accounts/profile_base.html' %}
+
+{% block title %}Администрация KVER{% endblock %}
+
+{% block profile_avatar %}
+<div class="admin-profile-avatar">
+    <i class="bi bi-shield-check"></i>
+</div>
+{% endblock %}
+
+{% block profile_header_info %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 w-100">
+    <div>
+        <h1 class="profile-name">Администрация KVER</h1>
+        <span class="profile-nickname">@{{ profile_user.nickname|default:profile_user.username }}</span>
+        <p class="text-secondary small mb-0 mt-2">
+            Официальный аккаунт платформы: новости, правила и поддержка пользователей.
+        </p>
+    </div>
+    <div class="profile-header-actions">
+        {% if is_owner %}
+        <a href="{% url 'accounts:profile_edit' profile_user.pk %}" class="btn btn-outline-neon btn-sm">
+            <i class="bi bi-pencil"></i> Редактировать
+        </a>
+        {% else %}
+        <a href="{% url 'accounts:chat' profile_user.pk %}" class="btn btn-neon btn-sm">
+            <i class="bi bi-envelope"></i> Написать
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block profile_tabs %}
+<ul class="nav nav-tabs profile-tabs" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active" type="button">Информационные посты</button>
+    </li>
+</ul>
+{% endblock %}
+
+{% block profile_content %}
+{% if is_owner and info_post_form %}
+<div class="info-post-compose mb-4 p-3 rounded" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
+    <h6 class="profile-section-title mb-3"><i class="bi bi-megaphone"></i> Новый пост</h6>
+    <form method="post" action="{% url 'core:info_post_create' %}" data-moderated-form data-moderated-fields="title,body">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label" for="id_title">Заголовок</label>
+            {{ info_post_form.title }}
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="id_body">Текст</label>
+            {{ info_post_form.body }}
+        </div>
+        <button type="submit" class="btn btn-neon btn-sm">
+            <i class="bi bi-send"></i> Опубликовать
+        </button>
+    </form>
+</div>
+{% endif %}
+
+{% if info_posts %}
+    {% for post in info_posts %}
+    <article class="info-post-item mb-4 pb-4 border-bottom border-secondary">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+            <h5 class="text-light mb-0">{{ post.title }}</h5>
+            <small class="text-muted">{{ post.created_at|date:"d.m.Y H:i" }}</small>
+        </div>
+        <div class="text-secondary info-post-body" style="line-height: 1.7; white-space: pre-line;">{{ post.body }}</div>
+        {% if is_owner %}
+        <div class="d-flex flex-wrap gap-2 mt-3">
+            <button type="button" class="btn btn-outline-neon btn-sm" data-bs-toggle="collapse" data-bs-target="#edit-info-{{ post.pk }}">
+                <i class="bi bi-pencil"></i> Редактировать
+            </button>
+            <form method="post" action="{% url 'core:info_post_delete' post.pk %}" class="d-inline m-0"
+                  onsubmit="return confirm('Удалить этот пост?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-trash"></i> Удалить
+                </button>
+            </form>
+        </div>
+        <div class="collapse mt-3" id="edit-info-{{ post.pk }}">
+            <form method="post" action="{% url 'core:info_post_edit' post.pk %}" class="p-3 rounded"
+                  style="background: rgba(255,255,255,0.03);"
+                  data-moderated-form data-moderated-fields="title,body">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">Заголовок</label>
+                    <input type="text" name="title" class="form-control" value="{{ post.title }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Текст</label>
+                    <textarea name="body" class="form-control" rows="4" required>{{ post.body }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-neon btn-sm">Сохранить</button>
+            </form>
+        </div>
+        {% endif %}
+    </article>
+    {% endfor %}
+{% else %}
+<p class="empty-info-text">Пока нет информационных постов.</p>
+{% endif %}
+{% endblock %}

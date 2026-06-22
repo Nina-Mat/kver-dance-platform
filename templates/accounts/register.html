@@ -193,25 +193,25 @@
 
         <!-- Выбор типа аккаунта -->
         <div class="account-type-grid">
-            <div class="account-type-card" onclick="selectAccountType('solo')">
+            <div class="account-type-card" onclick="selectAccountType('solo', this)">
                 <div class="account-type-icon">💃</div>
                 <div class="account-type-name">Сольный артист</div>
                 <div class="account-type-desc">Танцуешь один или ищешь команду</div>
             </div>
 
-            <div class="account-type-card" onclick="selectAccountType('team')">
+            <div class="account-type-card" onclick="selectAccountType('team', this)">
                 <div class="account-type-icon">👥</div>
                 <div class="account-type-name">Команда</div>
                 <div class="account-type-desc">Представляешь танцевальный коллектив</div>
             </div>
 
-            <div class="account-type-card" onclick="selectAccountType('organizer')">
+            <div class="account-type-card" onclick="selectAccountType('organizer', this)">
                 <div class="account-type-icon">🎟️</div>
                 <div class="account-type-name">Организатор</div>
                 <div class="account-type-desc">Проводишь мероприятия и баттлы</div>
             </div>
 
-            <div class="account-type-card" onclick="selectAccountType('specialist')">
+            <div class="account-type-card" onclick="selectAccountType('specialist', this)">
                 <div class="account-type-icon">📸</div>
                 <div class="account-type-name">Специалист</div>
                 <div class="account-type-desc">Фотограф, оператор, звукорежиссер</div>
@@ -219,40 +219,54 @@
         </div>
 
         <!-- Форма регистрации -->
-        <form method="post" class="register-form" id="registerForm">
+        <form method="post" class="register-form{% if selected_user_type %} active{% endif %}" id="registerForm">
             {% csrf_token %}
 
-            <input type="hidden" name="user_type" id="userType" value="">
+            <input type="hidden" name="user_type" id="userType" value="{{ selected_user_type|default:'' }}">
+            {% if add_account %}
+            <input type="hidden" name="add_account" value="1">
+            <div class="alert alert-info py-2 mb-3">
+                Новый аккаунт будет добавлен в переключатель. Текущая сессия не изменится.
+            </div>
+            {% endif %}
+
+            {% if field_errors.user_type %}
+            <div class="alert alert-danger py-2">{{ field_errors.user_type }}</div>
+            {% endif %}
 
             <div class="form-group">
                 <label class="form-label">Логин для входа</label>
-                <input type="text" name="username" class="form-control" required placeholder="login_name" autocomplete="username">
-                <small class="text-muted">Используется при входе вместе с паролем</small>
+                <input type="text" name="username" class="form-control{% if field_errors.username %} is-invalid{% endif %}" required placeholder="login_name" autocomplete="username" value="{{ form_data.username|default:'' }}">
+                {% if field_errors.username %}<div class="invalid-feedback d-block">{{ field_errors.username }}</div>{% endif %}
+                <small class="text-muted">Латиница, цифры и подчёркивание</small>
             </div>
 
             <div class="form-group" id="nicknameFieldGroup">
                 <label class="form-label">Уникальное @username <span class="text-danger">*</span></label>
                 <div class="input-group">
                     <span class="input-group-text">@</span>
-                    <input type="text" name="nickname" id="nicknameInput" class="form-control" placeholder="username" pattern="[A-Za-z0-9_]{3,30}">
+                    <input type="text" name="nickname" id="nicknameInput" class="form-control{% if field_errors.nickname %} is-invalid{% endif %}" placeholder="username" pattern="[A-Za-z0-9_.]{3,30}" value="{{ form_data.nickname|default:'' }}">
                 </div>
-                <small class="text-muted">Обязательное поле. Одно имя на весь сайт — по нему вас находят.</small>
+                {% if field_errors.nickname %}<div class="invalid-feedback d-block">{{ field_errors.nickname }}</div>{% endif %}
+                <small class="text-muted">Латиница, цифры, точка (.) и _ (3–30 символов).</small>
             </div>
 
             <div class="form-group d-none" id="teamFieldsGroup">
                 <label class="form-label">Название команды <span class="text-danger">*</span></label>
-                <input type="text" name="team_name" id="teamNameInput" class="form-control" placeholder="Название вашего коллектива">
+                <input type="text" name="team_name" id="teamNameInput" class="form-control{% if field_errors.team_name %} is-invalid{% endif %}" placeholder="Название вашего коллектива" value="{{ form_data.team_name|default:'' }}">
+                {% if field_errors.team_name %}<div class="invalid-feedback d-block">{{ field_errors.team_name }}</div>{% endif %}
                 <label class="form-label mt-3">@username команды <span class="text-danger">*</span></label>
                 <div class="input-group">
                     <span class="input-group-text">@</span>
-                    <input type="text" name="team_username" id="teamUsernameInput" class="form-control" placeholder="team_name" pattern="[A-Za-z0-9_]{3,30}">
+                    <input type="text" name="team_username" id="teamUsernameInput" class="form-control{% if field_errors.team_username %} is-invalid{% endif %}" placeholder="team_name" pattern="[A-Za-z0-9_.]{3,30}" value="{{ form_data.team_username|default:'' }}">
                 </div>
-                <small class="text-muted">Уникальное имя профиля команды на сайте</small>
+                {% if field_errors.team_username %}<div class="invalid-feedback d-block">{{ field_errors.team_username }}</div>{% endif %}
+                <small class="text-muted">Латиница, цифры, точка (.) и _ (3–30 символов)</small>
             </div>
 
             <div class="form-group">
                 <label class="form-label">Email</label>
-                <input type="email" name="email" class="form-control" required placeholder="your@email.com">
+                <input type="email" name="email" class="form-control" required placeholder="your@email.com" value="{{ form_data.email|default:'' }}">
             </div>
 
             <div class="form-group">
@@ -262,7 +276,8 @@
 
             <div class="form-group">
                 <label class="form-label">Подтверждение пароля</label>
-                <input type="password" name="password2" class="form-control" required placeholder="••••••••">
+                <input type="password" name="password2" class="form-control{% if field_errors.password2 %} is-invalid{% endif %}" required placeholder="••••••••">
+                {% if field_errors.password2 %}<div class="invalid-feedback d-block">{{ field_errors.password2 }}</div>{% endif %}
             </div>
 
             {% if messages %}
@@ -280,31 +295,34 @@
     </div>
 
     <script>
-        function selectAccountType(type) {
-            // Убираем выделение со всех карточек
+        function selectAccountType(type, cardEl) {
             document.querySelectorAll('.account-type-card').forEach(card => {
                 card.classList.remove('selected');
             });
-
-            // Добавляем выделение на выбранную карточку
-            event.currentTarget.classList.add('selected');
-
-            // Устанавливаем значение в скрытое поле
+            if (cardEl) {
+                cardEl.classList.add('selected');
+            }
             document.getElementById('userType').value = type;
-
-            // Показываем форму
             document.getElementById('registerForm').classList.add('active');
-
             const isTeam = type === 'team';
             document.getElementById('nicknameFieldGroup').classList.toggle('d-none', isTeam);
             document.getElementById('teamFieldsGroup').classList.toggle('d-none', !isTeam);
             document.getElementById('nicknameInput').required = !isTeam;
             document.getElementById('teamNameInput').required = isTeam;
             document.getElementById('teamUsernameInput').required = isTeam;
-
-            // Прокручиваем к форме
             document.getElementById('registerForm').scrollIntoView({ behavior: 'smooth' });
         }
+
+        {% if selected_user_type %}
+        document.addEventListener('DOMContentLoaded', function () {
+            var map = {solo: 0, team: 1, organizer: 2, specialist: 3};
+            var cards = document.querySelectorAll('.account-type-card');
+            var card = cards[map['{{ selected_user_type }}']];
+            if (card) {
+                selectAccountType('{{ selected_user_type }}', card);
+            }
+        });
+        {% endif %}
     </script>
 </body>
 </html>

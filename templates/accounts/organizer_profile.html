@@ -18,7 +18,9 @@
         <h1 class="profile-name">{{ profile_user.username }}</h1>
         <span class="role-badge"><i class="bi bi-calendar-event"></i> Организатор</span>
         {% if profile_user.organizer_profile.is_verified %}
-        <span class="role-badge stat-badge--success ms-1"><i class="bi bi-patch-check"></i> Верифицирован</span>
+        <span class="role-badge stat-badge--success ms-1"><i class="bi bi-patch-check"></i> Подтверждён</span>
+        {% elif is_owner %}
+        <span class="role-badge stat-badge ms-1"><i class="bi bi-hourglass-split"></i> Ожидает подтверждения</span>
         {% endif %}
         {% if profile_user.nickname %}
         <span class="profile-nickname">@{{ profile_user.nickname }}</span>
@@ -28,12 +30,20 @@
         </div>
     </div>
     {% include 'accounts/includes/profile_actions.html' %}
-    {% if is_owner %}
+    {% if is_owner and profile_user.organizer_profile.is_verified %}
     <a href="{% url 'events:create' %}" class="btn btn-neon btn-sm ms-2">
         <i class="bi bi-plus-lg"></i> Создать мероприятие
     </a>
     {% endif %}
 </div>
+
+{% if is_owner and not profile_user.organizer_profile.is_verified %}
+<div class="alert alert-warning py-2 px-3 mt-3 mb-0 small">
+    <i class="bi bi-shield-exclamation"></i>
+    Профиль организатора на проверке у администрации KVER. Пока доступно только редактирование профиля.
+    Создание мероприятий откроется после подтверждения.
+</div>
+{% endif %}
 
 <div class="profile-meta-row">
     {% if profile_user.organizer_profile.organization_name %}

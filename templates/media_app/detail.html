@@ -44,11 +44,23 @@
 
                     </div>
 
-                    <a href="{% url 'core:feed' %}" class="btn btn-outline-neon btn-sm">
-
-                        <i class="bi bi-arrow-left"></i> В ленту
-
-                    </a>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% if can_manage_cover %}
+                        <a href="{% url 'media_app:edit' cover.pk %}" class="btn btn-outline-neon btn-sm">
+                            <i class="bi bi-pencil"></i> Редактировать
+                        </a>
+                        <form method="post" action="{% url 'media_app:delete' cover.pk %}" class="d-inline m-0"
+                              onsubmit="return confirm('Удалить эту публикацию?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                <i class="bi bi-trash"></i> Удалить
+                            </button>
+                        </form>
+                        {% endif %}
+                        <a href="{% url 'core:feed' %}" class="btn btn-outline-neon btn-sm">
+                            <i class="bi bi-arrow-left"></i> В ленту
+                        </a>
+                    </div>
 
                 </div>
 
@@ -132,49 +144,75 @@
 
                 {% endif %}
 
-
-
-                <hr class="border-secondary my-4" style="border-color: rgba(255,255,255,0.08) !important;">
-
-
-
-                <h5 class="profile-section-title mb-3">Комментарии</h5>
-
-                <form method="post" action="{% url 'media_app:comment' cover.pk %}" class="mb-4">
-
-                    {% csrf_token %}
-
-                    {% include 'accounts/includes/form_field.html' with field=comment_form.text %}
-
-                    {% include 'accounts/includes/form_field.html' with field=comment_form.is_anonymous %}
-
-                    <button type="submit" class="btn btn-neon btn-sm">Отправить</button>
-
-                </form>
-
-
-
-                {% if comments %}
-
-                {% for comment in comments %}
-
-                <div class="event-list-item mb-2">
-
-                    <strong>{% if comment.is_anonymous %}Аноним{% else %}{{ comment.user.username }}{% endif %}</strong>
-
-                    <span class="text-muted small ms-2">{{ comment.created_at|date:"d.m.Y H:i" }}</span>
-
-                    <p class="mb-0 mt-1 text-secondary">{{ comment.text|linkify_mentions }}</p>
-
+                <div class="post-engagement">
+                    <div class="post-engagement__stats text-muted small">
+                        {% if cover.source_type == 'youtube' and cover.youtube_views %}
+                        <span><i class="bi bi-eye"></i> {{ cover.youtube_views }}</span>
+                        {% else %}
+                        <span><i class="bi bi-eye"></i> {{ cover.views_kver }}</span>
+                        {% endif %}
+                        <span class="{% if user_liked %}post-engagement__stat-liked{% endif %}">
+                            <i class="bi bi-heart{% if user_liked %}-fill{% endif %}"></i> {{ likes_count }}
+                        </span>
+                        <span><i class="bi bi-chat"></i> {{ comments_count }}</span>
+                    </div>
+                    <div class="post-engagement__actions">
+                        {% if user.is_authenticated %}
+                        <form method="post" action="{% url 'media_app:toggle_like' cover.pk %}" class="m-0">
+                            {% csrf_token %}
+                            <button type="submit" class="post-action-btn{% if user_liked %} post-action-btn--active{% endif %}">
+                                <i class="bi bi-heart{% if user_liked %}-fill{% endif %}"></i> Нравится
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="post-action-btn post-action-btn--static">
+                            <i class="bi bi-heart"></i> Нравится
+                        </span>
+                        {% endif %}
+                        <a href="#comments" class="post-action-btn post-action-btn--link">
+                            <i class="bi bi-chat"></i> Комментарии
+                        </a>
+                    </div>
                 </div>
 
-                {% endfor %}
+                <section class="comments-section" id="comments">
+                    <h5 class="comments-section__title">Комментарии</h5>
 
-                {% else %}
+                    {% if user.is_authenticated %}
+                    <form method="post" action="{% url 'media_app:comment' cover.pk %}" class="comment-compose"
+                          data-moderated-form data-moderated-fields="text">
+                        {% csrf_token %}
+                        <div class="comment-compose__avatar">
+                            {% include 'media_app/includes/comment_avatar.html' with comment_user=user is_anonymous=False %}
+                        </div>
+                        <div class="comment-compose__body">
+                            {{ comment_form.text }}
+                            <div class="comment-compose__footer">
+                                <label class="comment-compose__anon-label kver-action-tooltip"
+                                       title="Ваш ник не будет виден другим пользователям">
+                                    {{ comment_form.is_anonymous }}
+                                    <span>Опубликовать анонимно</span>
+                                </label>
+                                <button type="submit" class="btn btn-neon btn-sm comment-compose__submit">
+                                    <i class="bi bi-send"></i> Отправить
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    {% else %}
+                    <p class="text-muted small mb-3">
+                        <a href="{% url 'accounts:login' %}">Войдите</a>, чтобы оставить комментарий.
+                    </p>
+                    {% endif %}
 
-                <p class="text-muted">Комментариев пока нет.</p>
-
-                {% endif %}
+                    <div class="comments-list">
+                        {% for comment in comments %}
+                        {% include 'media_app/includes/comment_item.html' with comment=comment cover=cover %}
+                        {% empty %}
+                        <p class="comments-empty">Комментариев пока нет — будьте первым.</p>
+                        {% endfor %}
+                    </div>
+                </section>
 
             </div>
 

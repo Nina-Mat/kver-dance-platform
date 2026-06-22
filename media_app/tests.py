@@ -20,9 +20,12 @@ class CommentModerationTests(SimpleTestCase):
         self.assertFalse(contains_stop_words('Классное выступление'))
 
     def test_comment_form_rejects_stop_words(self):
+        from media_app.moderation import MODERATION_POLICY_MESSAGE
+
         form = CommentForm(data={'text': 'Купите реклама у меня', 'is_anonymous': False})
         self.assertFalse(form.is_valid())
         self.assertIn('text', form.errors)
+        self.assertIn(MODERATION_POLICY_MESSAGE, form.errors['text'])
 
     def test_comment_form_accepts_clean_comment(self):
         form = CommentForm(data={'text': 'Очень крутой кавер!', 'is_anonymous': False})

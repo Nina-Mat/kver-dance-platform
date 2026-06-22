@@ -66,6 +66,10 @@ class EventForm(forms.ModelForm):
 
             'location',
 
+            'location_lat',
+
+            'location_lng',
+
             'registration_deadline',
 
             'logo',
@@ -94,7 +98,7 @@ class EventForm(forms.ModelForm):
 
             }),
 
-            'event_type': forms.Select(attrs={'class': 'form-select'}),
+            'event_type': forms.RadioSelect(attrs={'class': 'form-check-input'}),
 
             'event_date': forms.DateTimeInput(attrs={
 
@@ -108,9 +112,17 @@ class EventForm(forms.ModelForm):
 
                 'class': 'form-control',
 
-                'placeholder': 'Адрес или «онлайн»',
+                'placeholder': 'Начните вводить адрес или «онлайн»',
+
+                'id': 'id_location',
+
+                'autocomplete': 'off',
 
             }),
+
+            'location_lat': forms.HiddenInput(),
+
+            'location_lng': forms.HiddenInput(),
 
             'registration_deadline': forms.DateTimeInput(attrs={
 
@@ -210,7 +222,10 @@ class EventForm(forms.ModelForm):
 
             )
 
-
+        location = (cleaned_data.get('location') or '').strip().lower()
+        if location in ('онлайн', 'online'):
+            cleaned_data['location_lat'] = None
+            cleaned_data['location_lng'] = None
 
         return cleaned_data
 

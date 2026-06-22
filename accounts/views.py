@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 
-from django.views.generic import View
+from django.views.generic import View, DetailView
 
 from django.contrib.auth import login, logout, authenticate
 
@@ -14,17 +14,25 @@ from django.core.exceptions import ValidationError
 
 from django.db import IntegrityError
 
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Count
 
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 
-from django.http import Http404
+from django.http import Http404, JsonResponse
 
 from django.views.decorators.http import require_POST
 
 
 
-from .models import CustomUser, Team, TeamMember, TeamApplication, UserProfile, OrganizerProfile, SpecialistProfile, PhotoCard
+from media_app.moderation import MODERATION_POLICY_MESSAGE
+
+from .models import (
+    CustomUser, Team, TeamMember, TeamApplication, Notification, UserProfile,
+    OrganizerProfile, SpecialistProfile, PhotoCard, PhotoCardLike,
+    PhotoCardComment, PhotoCardCommentLike,
+)
+
+from .photocard_utils import record_photo_card_view
 
 from .notifications import create_notification
 
@@ -45,6 +53,8 @@ from .forms import (
     SpecialistProfileForm,
 
     PhotoCardForm,
+
+    PhotoCardCommentForm,
 
     TeamMemberAddForm,
 
@@ -236,15 +246,22 @@ class RegisterView(View):
 
     """Регистрация с выбором типа аккаунта."""
 
-
+    @staticmethod
+    def _render(request, user_type='', field_errors=None, form_data=None, add_account=False):
+        return render(request, 'accounts/register.html', {
+            'field_errors': field_errors or {},
+            'form_data': form_data or {},
+            'selected_user_type': user_type,
+            'add_account': add_account,
+        })
 
     def get(self, request):
 
-        if request.user.is_authenticated:
-
+        add_account = request.GET.get('add') == '1'
+        if request.user.is_authenticated and not add_account:
             return redirect('core:feed')
 
-        return render(request, 'accounts/register.html')
+        return self._render(request, add_account=add_account)
 
 
 
@@ -266,67 +283,50 @@ class RegisterView(View):
 
         user_type = request.POST.get('user_type')
 
+        add_account = request.POST.get('add_account') == '1'
 
+        form_data = {
+            'username': username,
+            'nickname': nickname,
+            'team_name': team_name,
+            'team_username': team_username,
+            'email': email,
+        }
+        field_errors = {}
+
+        if not user_type:
+            field_errors['user_type'] = 'Выберите тип аккаунта.'
+            return self._render(request, field_errors=field_errors, form_data=form_data, add_account=add_account)
 
         if password1 != password2:
-
-            messages.error(request, 'Пароли не совпадают!')
-
-            return render(request, 'accounts/register.html')
-
-
+            field_errors['password2'] = 'Пароли не совпадают.'
+            return self._render(request, user_type=user_type, field_errors=field_errors, form_data=form_data, add_account=add_account)
 
         if CustomUser.objects.filter(username=username).exists():
-
-            messages.error(request, 'Пользователь с таким именем уже существует!')
-
-            return render(request, 'accounts/register.html')
-
-
+            field_errors['username'] = 'Пользователь с таким логином уже существует.'
+            return self._render(request, user_type=user_type, field_errors=field_errors, form_data=form_data, add_account=add_account)
 
         if user_type == 'team':
-
             if not team_username:
-
-                messages.error(request, 'Укажите уникальное @username команды.')
-
-                return render(request, 'accounts/register.html')
-
+                field_errors['team_username'] = 'Укажите @username команды.'
+                return self._render(request, user_type=user_type, field_errors=field_errors, form_data=form_data, add_account=add_account)
             try:
-
                 validate_unique_team_username(team_username)
-
             except ValidationError as exc:
-
-                messages.error(request, exc.messages[0])
-
-                return render(request, 'accounts/register.html')
-
+                field_errors['team_username'] = exc.messages[0]
+                return self._render(request, user_type=user_type, field_errors=field_errors, form_data=form_data, add_account=add_account)
             if not team_name:
-
-                messages.error(request, 'Укажите название команды.')
-
-                return render(request, 'accounts/register.html')
-
+                field_errors['team_name'] = 'Укажите название команды.'
+                return self._render(request, user_type=user_type, field_errors=field_errors, form_data=form_data, add_account=add_account)
         else:
-
             if not nickname:
-
-                messages.error(request, 'Уникальное @username обязательно для заполнения.')
-
-                return render(request, 'accounts/register.html')
-
+                field_errors['nickname'] = 'Уникальное @username обязательно.'
+                return self._render(request, user_type=user_type, field_errors=field_errors, form_data=form_data, add_account=add_account)
             try:
-
                 validate_unique_nickname(nickname)
-
             except ValidationError as exc:
-
-                messages.error(request, exc.messages[0])
-
-                return render(request, 'accounts/register.html')
-
-
+                field_errors['nickname'] = exc.messages[0]
+                return self._render(request, user_type=user_type, field_errors=field_errors, form_data=form_data, add_account=add_account)
 
         user = CustomUser.objects.create_user(
 
@@ -351,6 +351,8 @@ class RegisterView(View):
         elif user_type == 'organizer':
 
             OrganizerProfile.objects.create(user=user)
+            from .organizer_utils import notify_admin_new_organizer
+            notify_admin_new_organizer(user)
 
         elif user_type == 'specialist':
 
@@ -368,10 +370,21 @@ class RegisterView(View):
 
             )
 
+        from .admin_notifications import notify_admin_new_user
+        notify_admin_new_user(user)
 
+        display_name = user.nickname or user.username or team_username
+        if add_account and request.user.is_authenticated:
+            add_linked_account(request, user)
+            current_name = request.user.nickname or request.user.username
+            messages.success(
+                request,
+                f'Аккаунт @{display_name} создан и добавлен в переключатель. '
+                f'Вы по-прежнему в @{current_name}.',
+            )
+            return redirect('core:feed')
 
         messages.success(request, 'Аккаунт создан! Теперь войдите.')
-
         return redirect('accounts:login')
 
 
@@ -422,7 +435,18 @@ class ProfileView(View):
 
         context.update(get_profile_social_context(request, profile_user))
 
+        from core.forms import InfoPostForm
+        from core.models import InfoPost
+        from core.utils import get_kver_admin_user
 
+        admin_user = get_kver_admin_user()
+        if admin_user and profile_user.pk == admin_user.pk:
+            context.update({
+                'is_admin_profile': True,
+                'info_posts': InfoPost.objects.select_related('author').order_by('-created_at'),
+                'info_post_form': InfoPostForm() if context['is_owner'] else None,
+            })
+            return render(request, 'accounts/admin_profile.html', context)
 
         if user_type == 'team':
 
@@ -907,6 +931,13 @@ def team_profile(request, pk):
             status='pending',
         ).exists()
 
+    pending_applications = []
+    if is_owner:
+        pending_applications = TeamApplication.objects.filter(
+            team=team,
+            status='pending',
+        ).select_related('applicant').order_by('-created_at')
+
     context = {
 
         'team': team,
@@ -920,6 +951,8 @@ def team_profile(request, pk):
         'is_team_member': is_team_member,
 
         'has_pending_application': has_pending_application,
+
+        'pending_applications': pending_applications,
 
         'add_member_form': add_member_form,
 
@@ -1036,6 +1069,125 @@ def team_apply(request, pk):
 
 
 @login_required
+@require_POST
+def team_application_action(request, pk, application_pk):
+    """Принять или отклонить заявку в команду."""
+    team = get_object_or_404(Team, pk=pk)
+    if request.user != team.leader:
+        messages.error(request, 'Только лидер может обрабатывать заявки.')
+        return redirect('accounts:team_profile', pk=pk)
+
+    application = get_object_or_404(
+        TeamApplication,
+        pk=application_pk,
+        team=team,
+        status='pending',
+    )
+    action = request.POST.get('action')
+
+    if action == 'accept':
+        if team.members_count() >= team.max_members:
+            messages.error(request, 'Достигнут лимит участников.')
+        elif TeamMember.objects.filter(team=team, user=application.applicant).exists():
+            application.status = 'accepted'
+            application.save(update_fields=['status'])
+            messages.info(request, 'Пользователь уже в команде.')
+        else:
+            TeamMember.objects.create(
+                team=team,
+                user=application.applicant,
+                role='member',
+            )
+            application.status = 'accepted'
+            application.save(update_fields=['status'])
+            create_notification(
+                recipient=application.applicant,
+                notification_type='team_added',
+                title='Заявка принята',
+                message=f'Команда «{team.name}» приняла вашу заявку.',
+                team=team,
+                actor=team.leader,
+            )
+            messages.success(request, f'{application.applicant.username} принят в команду.')
+    elif action == 'reject':
+        application.status = 'rejected'
+        application.save(update_fields=['status'])
+        create_notification(
+            recipient=application.applicant,
+            notification_type='team_added',
+            title='Заявка отклонена',
+            message=f'Команда «{team.name}» отклонила вашу заявку.',
+            team=team,
+            actor=team.leader,
+        )
+        messages.info(request, 'Заявка отклонена.')
+    else:
+        messages.error(request, 'Некорректное действие.')
+
+    return redirect(reverse('accounts:team_profile', kwargs={'pk': pk}) + '#applications')
+
+
+@login_required
+@require_POST
+def organizer_verification_action(request, pk):
+    """Подтверждение или отклонение аккаунта организатора (только администрация)."""
+    if not request.user.is_superuser:
+        messages.error(request, 'Только администрация может подтверждать организаторов.')
+        return redirect('core:feed')
+
+    notification = get_object_or_404(
+        Notification,
+        pk=pk,
+        recipient=request.user,
+        notification_type='organizer_verification',
+    )
+    organizer = notification.actor
+    if not organizer or organizer.user_type != 'organizer':
+        messages.error(request, 'Некорректное уведомление.')
+        return redirect('core:feed')
+
+    profile, _ = OrganizerProfile.objects.get_or_create(user=organizer)
+    action = request.POST.get('action')
+    display_name = organizer.nickname or organizer.username
+
+    if action == 'approve':
+        profile.is_verified = True
+        profile.save(update_fields=['is_verified'])
+        create_notification(
+            recipient=organizer,
+            notification_type='organizer_verified',
+            title='Профиль организатора подтверждён',
+            message=(
+                'Администрация KVER подтвердила ваш аккаунт. '
+                'Теперь вы можете создавать мероприятия в календаре.'
+            ),
+            actor=request.user,
+        )
+        messages.success(request, f'Организатор @{display_name} подтверждён.')
+    elif action == 'reject':
+        profile.is_verified = False
+        profile.save(update_fields=['is_verified'])
+        create_notification(
+            recipient=organizer,
+            notification_type='organizer_rejected',
+            title='Заявка организатора отклонена',
+            message=(
+                'Администрация KVER отклонила подтверждение аккаунта организатора. '
+                'Напишите в поддержку, если считаете это ошибкой.'
+            ),
+            actor=request.user,
+        )
+        messages.info(request, f'Заявка организатора @{display_name} отклонена.')
+    else:
+        messages.error(request, 'Некорректное действие.')
+        return redirect('core:feed')
+
+    notification.is_read = True
+    notification.save(update_fields=['is_read'])
+    return redirect('core:feed')
+
+
+@login_required
 def team_remove_member(request, pk, membership_pk):
     """Удаление участника из команды (только лидер)."""
     team = get_object_or_404(Team, pk=pk)
@@ -1140,7 +1292,8 @@ def photocard_upload(request, pk):
 
             for error in errors:
 
-                messages.error(request, f'{field}: {error}')
+                tags = 'moderation' if str(error) == MODERATION_POLICY_MESSAGE else ''
+                messages.error(request, f'{field}: {error}', extra_tags=tags)
 
 
 
@@ -1175,3 +1328,141 @@ def photocard_delete(request, pk, card_pk):
     return redirect(f"{reverse('accounts:profile', kwargs={'pk': pk})}#photocards")
 
 
+def _redirect_back(request, fallback):
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        return redirect(referer)
+    return redirect(fallback)
+
+
+class PhotoCardDetailView(DetailView):
+    """Страница фотокарточки с комментариями."""
+
+    model = PhotoCard
+    template_name = 'accounts/photocard_detail.html'
+    context_object_name = 'card'
+
+    def get_queryset(self):
+        return PhotoCard.objects.select_related('user', 'user__profile').prefetch_related(
+            'comments__user',
+            'comments__user__profile',
+        )
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        record_photo_card_view(request, self.object)
+        return self.render_to_response(self.get_context_data(object=self.object))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['comment_form'] = PhotoCardCommentForm()
+        comments = (
+            self.object.comments.filter(is_approved=True)
+            .select_related('user', 'user__profile')
+            .annotate(likes_count=Count('likes'))
+            .order_by('created_at')
+        )
+        context['comments'] = comments
+        context['comments_count'] = comments.count()
+        user = self.request.user
+        context['user_liked'] = False
+        context['user_liked_comment_ids'] = set()
+        if user.is_authenticated:
+            context['user_liked'] = PhotoCardLike.objects.filter(
+                user=user, photo=self.object,
+            ).exists()
+            context['user_liked_comment_ids'] = set(
+                PhotoCardCommentLike.objects.filter(
+                    user=user,
+                    comment__in=comments,
+                ).values_list('comment_id', flat=True)
+            )
+        context['likes_count'] = self.object.likes.count()
+        context['can_manage_photo'] = user.is_authenticated and (
+            user.is_superuser or user.pk == self.object.user_id
+        )
+        return context
+
+
+@login_required
+@require_POST
+def photocard_toggle_like(request, pk):
+    """Поставить или убрать лайк с фотокарточки."""
+    photo = get_object_or_404(PhotoCard, pk=pk)
+    like, created = PhotoCardLike.objects.get_or_create(user=request.user, photo=photo)
+    if not created:
+        like.delete()
+        liked = False
+    else:
+        liked = True
+    count = photo.likes.count()
+    photo.likes_kver = count
+    photo.save(update_fields=['likes_kver'])
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'liked': liked, 'likes_count': count})
+    return _redirect_back(request, reverse('accounts:photocard_detail', kwargs={'pk': pk}))
+
+
+@login_required
+@require_POST
+def photocard_comment(request, pk):
+    """Добавление комментария к фотокарточке."""
+    photo = get_object_or_404(PhotoCard, pk=pk)
+    form = PhotoCardCommentForm(request.POST)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.user = request.user
+        comment.photo = photo
+        comment.is_approved = True
+        comment.save()
+        messages.success(request, 'Комментарий опубликован.')
+    else:
+        for field_errors in form.errors.values():
+            for error in field_errors:
+                tags = 'moderation error' if str(error) == MODERATION_POLICY_MESSAGE else 'error'
+                messages.error(request, error, extra_tags=tags)
+    return redirect(f"{reverse('accounts:photocard_detail', kwargs={'pk': pk})}#comments")
+
+
+def user_can_delete_photo_comment(user, comment, photo):
+    """Удалять комментарий может его автор или владелец фото."""
+    if not user.is_authenticated:
+        return False
+    if comment.user_id == user.pk:
+        return True
+    return photo.user_id == user.pk
+
+
+@login_required
+@require_POST
+def photocard_delete_comment(request, pk, comment_pk):
+    """Удаление комментария к фотокарточке."""
+    photo = get_object_or_404(PhotoCard, pk=pk)
+    comment = get_object_or_404(
+        PhotoCardComment,
+        pk=comment_pk,
+        photo=photo,
+        is_approved=True,
+    )
+    if not user_can_delete_photo_comment(request.user, comment, photo):
+        messages.error(request, 'Нет прав для удаления этого комментария.')
+        return redirect('accounts:photocard_detail', pk=pk)
+    comment.delete()
+    messages.success(request, 'Комментарий удалён.')
+    return redirect(f"{reverse('accounts:photocard_detail', kwargs={'pk': pk})}#comments")
+
+
+@login_required
+@require_POST
+def photocard_toggle_comment_like(request, pk, comment_pk):
+    """Поставить или убрать лайк с комментария к фото."""
+    comment = get_object_or_404(
+        PhotoCardComment,
+        pk=comment_pk,
+        photo_id=pk,
+        is_approved=True,
+    )
+    like, created = PhotoCardCommentLike.objects.get_or_create(user=request.user, comment=comment)
+    if not created:
+        like.delete()
+    return redirect(f"{reverse('accounts:photocard_detail', kwargs={'pk': pk})}#comments")

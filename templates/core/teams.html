@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Команды — KVER{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4"><i class="bi bi-people"></i> Команды</h2>
+    {% if teams %}
+    <div class="row g-3">
+        {% for team in teams %}
+        <div class="col-md-6 col-lg-4">
+            <a href="{% url 'accounts:team_profile' team.pk %}" class="text-decoration-none">
+                <div class="bg-card p-3 rounded h-100">
+                    <h5 class="text-light mb-1">{{ team.name }}</h5>
+                    {% if team.username %}<span class="text-muted small">@{{ team.username }}</span>{% endif %}
+                    {% if team.city %}<p class="text-muted small mb-0 mt-2"><i class="bi bi-geo-alt"></i> {{ team.city }}</p>{% endif %}
+                    <p class="text-muted small mb-0">{{ team.members_count }} участников</p>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted">Команды пока не созданы.</p>
+    {% endif %}
+</div>
+{% endblock %}

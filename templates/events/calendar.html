@@ -90,6 +90,10 @@
         <a href="{% url 'events:create' %}" class="btn btn-neon">
             <i class="bi bi-plus-lg"></i> Создать мероприятие
         </a>
+        {% elif organizer_pending_verification %}
+        <span class="text-muted small">
+            <i class="bi bi-hourglass-split"></i> Создание мероприятий доступно после подтверждения профиля администрацией
+        </span>
         {% endif %}
     </div>
 
@@ -177,13 +181,4 @@
         {% endfor %}
     </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.map(function (el) { return new bootstrap.Tooltip(el); });
-    });
-</script>
 {% endblock %}

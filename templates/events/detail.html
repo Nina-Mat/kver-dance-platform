@@ -1,7 +1,13 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}{{ event.title }} — KVER{% endblock %}
 
+{% block extra_css %}
+{% if event.location_lat and event.location_lng %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endif %}
+{% endblock %}
 {% block content %}
 <div class="container">
     <div class="row justify-content-center">
@@ -52,13 +58,22 @@
                     </div>
                 </div>
 
+                {% if event.location_lat and event.location_lng %}
+                <h5 class="profile-section-title">На карте</h5>
+                <div id="eventDetailMap"
+                     data-lat="{{ event.location_lat }}"
+                     data-lng="{{ event.location_lng }}"
+                     style="height: 280px; border-radius: 12px; margin-bottom: 1.5rem;"></div>
+                {% endif %}
+
                 {% if event.description %}
                 <h5 class="profile-section-title">Описание</h5>
                 <p class="text-secondary" style="line-height: 1.7;">{{ event.description|linebreaks }}</p>
                 {% endif %}
 
                 <div class="d-flex flex-wrap gap-2 mt-4">
-                    <a href="{% url 'events:calendar' %}?month={{ event.event_date|date:'Y-m' }}" class="btn btn-outline-neon">
+                    <a href="{% url 'events:calendar' %}?month={{ event.event_date|date:'Y-m' }}" class="btn btn-outline-neon kver-action-tooltip"
+                       title="Открыть календарь на месяц проведения мероприятия">
                         <i class="bi bi-calendar3"></i> В календарь
                     </a>
 
@@ -67,9 +82,12 @@
                         <i class="bi bi-file-earmark-plus"></i> Подать заявку
                     </a>
                     {% elif user_application %}
-                    <span class="btn btn-outline-neon disabled">
-                        <i class="bi bi-check2-circle"></i>
-                        Заявка отправлена · {{ user_application.get_status_display }}
+                    <span class="d-inline-block kver-action-tooltip" tabindex="0"
+                          title="Повторная подача недоступна — дождитесь решения организатора">
+                        <span class="btn btn-outline-neon disabled">
+                            <i class="bi bi-check2-circle"></i>
+                            Заявка отправлена · {{ user_application.get_status_display }}
+                        </span>
                     </span>
                     {% elif not registration_open and not is_organizer %}
                     <span class="btn btn-outline-neon disabled">
@@ -78,7 +96,11 @@
                     {% endif %}
 
                     {% if is_organizer %}
-                    <a href="{% url 'events:applications' event.pk %}" class="btn btn-neon">
+                    <a href="{% url 'events:edit' event.pk %}" class="btn btn-outline-neon">
+                        <i class="bi bi-pencil"></i> Редактировать
+                    </a>
+                    <a href="{% url 'events:applications' event.pk %}" class="btn btn-neon kver-action-tooltip"
+                       title="Просмотр и модерация заявок участников">
                         <i class="bi bi-file-earmark-text"></i> Заявки
                         {% if applications_count %}({{ applications_count }}){% endif %}
                     </a>
@@ -91,4 +113,11 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if event.location_lat and event.location_lng %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'js/event_detail_map.js' %}"></script>
+{% endif %}
 {% endblock %}

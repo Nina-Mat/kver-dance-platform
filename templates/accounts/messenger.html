@@ -7,9 +7,10 @@
     <h2 class="mb-4"><i class="bi bi-chat-dots"></i> Мессенджер</h2>
 
     {% if dialog_items %}
-    <div class="list-group">
+    <input type="search" id="messengerSearch" class="form-control mb-3" placeholder="Поиск контактов..." autocomplete="off">
+    <div class="list-group" id="messengerList">
         {% for item in dialog_items %}
-        <a href="{% url 'accounts:chat' item.other_user.pk %}" class="list-group-item list-group-item-action bg-card border-secondary text-light d-flex align-items-center gap-3 mb-2 rounded">
+        <a href="{% url 'accounts:chat' item.other_user.pk %}" class="list-group-item list-group-item-action bg-card border-secondary text-light d-flex align-items-center gap-3 mb-2 rounded messenger-row" data-name="{{ item.other_user.nickname|default:item.other_user.username|lower }}">
             <div class="flex-grow-1">
                 <div class="fw-semibold">@{{ item.other_user.nickname|default:item.other_user.username }}</div>
                 {% if item.last_message %}
@@ -27,7 +28,23 @@
         {% endfor %}
     </div>
     {% else %}
-    <p class="empty-info-text">Диалогов пока нет. Зайдите в профиль и нажмите «Написать».</p>
+    <p class="empty-info-text">Диалогов пока нет. Откройте профиль пользователя и нажмите «Написать».</p>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var input = document.getElementById('messengerSearch');
+    if (!input) return;
+    input.addEventListener('input', function () {
+        var q = input.value.trim().toLowerCase();
+        document.querySelectorAll('.messenger-row').forEach(function (row) {
+            var name = row.dataset.name || '';
+            row.style.display = !q || name.indexOf(q) !== -1 ? '' : 'none';
+        });
+    });
+})();
+</script>
 {% endblock %}

@@ -8,6 +8,10 @@ class CoverMedia(models.Model):
         ('upload', ' Загрузка файла'),
         ('youtube', ' Ссылка YouTube'),
     ]
+    FEED_TYPE_CHOICES = [
+        ('cover', 'Кавер'),
+        ('performance', 'Выступление'),
+    ]
 
     author = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='uploads', verbose_name="Автор")
     team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True, related_name='covers',
@@ -15,6 +19,12 @@ class CoverMedia(models.Model):
 
     source_type = models.CharField(max_length=10, choices=SOURCE_CHOICES, default='upload',
                                    verbose_name="Источник видео")
+    feed_type = models.CharField(
+        max_length=20,
+        choices=FEED_TYPE_CHOICES,
+        default='cover',
+        verbose_name='Тип в ленте',
+    )
     video_file = models.FileField(upload_to='covers/videos/', blank=True, null=True, verbose_name="Видеофайл")
     cover_image = models.ImageField(upload_to='covers/images/', blank=True, null=True,
                                     verbose_name="Обложка")  # 🔥 Добавили!
@@ -45,7 +55,7 @@ class CoverMedia(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата загрузки")
 
     def clean(self):
-        if self.source_type == 'upload' and not self.video_file:
+        if self.source_type == 'upload' and not self.video_file and not self.pk:
             raise ValidationError("Загрузите видеофайл")
         if self.source_type == 'youtube' and not self.youtube_id:
             raise ValidationError("Укажите ссылку на YouTube")
@@ -57,6 +67,63 @@ class CoverMedia(models.Model):
         verbose_name = "Видео-кавер"
         verbose_name_plural = "Видео-каверы"
         ordering = ['-created_at']
+
+
+class CoverMediaDailyView(models.Model):
+    """Один просмотр публикации от пользователя или сессии за календарные сутки."""
+
+    media = models.ForeignKey(
+        CoverMedia,
+        on_delete=models.CASCADE,
+        related_name='daily_views',
+        verbose_name='Публикация',
+    )
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='cover_daily_views',
+        verbose_name='Пользователь',
+    )
+    session_key = models.CharField(max_length=40, blank=True, default='')
+    viewer_key = models.CharField(max_length=128, verbose_name='Ключ зрителя')
+    view_date = models.DateField(verbose_name='Дата просмотра')
+
+    class Meta:
+        verbose_name = 'Дневной просмотр'
+        verbose_name_plural = 'Дневные просмотры'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['media', 'viewer_key', 'view_date'],
+                name='unique_cover_daily_view',
+            ),
+        ]
+
+
+class CoverLike(models.Model):
+    """Лайк пользователя на публикацию."""
+
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='cover_likes',
+        verbose_name='Пользователь',
+    )
+    media = models.ForeignKey(
+        CoverMedia,
+        on_delete=models.CASCADE,
+        related_name='likes',
+        verbose_name='Публикация',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Лайк'
+        verbose_name_plural = 'Лайки'
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'media'], name='unique_cover_like'),
+        ]
 
 
 class Comment(models.Model):
@@ -74,4 +141,29 @@ class Comment(models.Model):
     class Meta:
         verbose_name = "Комментарий"
         verbose_name_plural = "Комментарии"
-        ordering = ['-created_at']
+        ordering = ['created_at']
+
+
+class CommentLike(models.Model):
+    """Лайк пользователя на комментарий."""
+
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='comment_likes',
+        verbose_name='Пользователь',
+    )
+    comment = models.ForeignKey(
+        Comment,
+        on_delete=models.CASCADE,
+        related_name='likes',
+        verbose_name='Комментарий',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Лайк комментария'
+        verbose_name_plural = 'Лайки комментариев'
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'comment'], name='unique_comment_like'),
+        ]
